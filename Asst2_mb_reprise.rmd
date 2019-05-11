@@ -25,7 +25,7 @@ I then use a logistic regression model, and find that all five independent varia
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 ## Load needed packages
-library(tidyverse); library(nycflights13); library(stringr); library(lubridate); library(ggthemes)
+library(tidyverse); library(nycflights13); library(stringr); library(lubridate); library(ggthemes); library(moments)
 ```
 
 
