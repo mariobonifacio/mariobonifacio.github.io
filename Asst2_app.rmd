@@ -1,7 +1,6 @@
 ---
 title: "On flight delays"
-author: "Mario Bonifacio"
-date: ""
+subtitle: "Your takeoff time matters most"
 output: html_notebook
 runtime: shiny
 ---
@@ -15,8 +14,8 @@ knitr::opts_chunk$set(
 ```
 
 
-```{r eruptions, echo=FALSE, fig.height=100, message=FALSE, warning=FALSE}
-library(lubridate); library(tidyverse); library(shiny); library(nycflights13); library(ggthemes)
+```{r eruptions, echo=FALSE, message=FALSE, warning=FALSE}
+library(shiny)
 
 ui <- bootstrapPage( ## Define the UI
   sliderInput(inputId = 'hr', label = 'Scheduled departure hour: ', min = 0, max = 23, value = 12, width = '100%'),
@@ -30,18 +29,17 @@ server <- function(input, output) { ## Define the server code
          y = c(100/(1+exp(-(0.279603750 - (0.001999519 - 0.0000148) * abs(input$hr * 60 + input$min - (19 * 60 + 35))))),
                100/(1+exp(-(0.279603750 - 0.001999519 * abs(input$hr * 60 + input$min - (19 * 60 + 35))))),
                100/(1+exp(-(0.279603750 - (0.001999519 + 0.0000148) * abs(input$hr * 60 + input$min - (19 * 60 + 35)))))),
-         xlim = range(input$hr * 100 +input$min - 15, input$hr * 100 + input$min + 15),
+         xlim = range(input$hr * 100, input$hr * 100 + 55),
          type = 'b',
          lwd = 3,
          lty = 2,
          tck = 0.02,
          xlab = 'Scheduled departure time',
-         ylab = 'Percent chance of delay',
+         ylab = 'Percent chance of delay, with std. err. bars',
          pch = 3,
          main = paste('Plan around a chance of delay of ', round(100/(1+exp(-(0.279603750 - (0.001999519) * abs(input$hr * 60 + input$min - (19 * 60 + 35)))))), '%'))
   })
 }
 shinyApp(ui = ui, server = server) ## Return a Shiny app object
-
 ```
 

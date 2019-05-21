@@ -5,6 +5,6 @@ account: mariobonifacio
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 939990
-bundleId: 2097987
+bundleId: 2098049
 url: https://mariobonifacio.shinyapps.io/asst2_app/
-when: 1558411268.95693
+when: 1558414761.84805
