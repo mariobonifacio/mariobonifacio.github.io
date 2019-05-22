@@ -76,7 +76,7 @@ test_c %>%
 ggplot() +
   geom_line(size = 1, aes(x = sched_dep_time_metric, y = 0.39094), color = 'gray') +
   geom_point(size = 1, mapping = aes(x = sched_dep_time_metric, y = op_sched_dep_time, color = 'observed probability')) +
-  geom_line(data = test_d, mapping = aes(x = sched_dep_time_metric, y = pred_bivar, color = 'predicted probability'), size = 1.5) +
+  geom_line(data = test_c, mapping = aes(x = sched_dep_time_metric, y = pred_bivar, color = 'predicted probability'), size = 1.5) +
   
   ggtitle('Fly in the morning to lower your chance for delay') +
   scale_color_fivethirtyeight(labels = c('observed p', 'predicted p')
@@ -139,7 +139,7 @@ library(tidyverse); library(nycflights13); library(lubridate); library(ggthemes)
 
 ### BASELINE
 
-I'll set a baseline probability by finding $\frac{delayed flights}{total flights}$: 
+I'll set a baseline probability by finding $\frac{delayed flights}{total flights}$ : 
 ```{r echo=FALSE, include=FALSE, warning=FALSE}
 
 op_base <- sum(flights$dep_delay > 0, na.rm = T) / sum(!is.na(flights$dep_delay))
@@ -167,14 +167,6 @@ Some flight, plane, and weather data are irrelevant or redundant and may be remo
 ```{r message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
 ### Remove irrelevant columns
 
-flt_test_00 <- flt_raw %>%
-  filter(!is.na(dep_delay) == T) %>%
-  select(-year.x, -month.x, -day.x, -hour.x ## Ex ante flight info 1
-         ,-minute, -sched_arr_time, -flight ## Ex ante flight info 2
-         ,-tailnum, -dest, -time_hour ## Ex ante flight info 3
-         ,-dep_time, -arr_time ## Post hoc flight info 1
-         ,-arr_delay ,-air_time ## Post hoc flight info 2
-         ,-year.y, month.y, -day.y, -hour.y) ## Weather reading time
 
 ## Here's what's kept:
 ##(dep_delay, sched_dep_time, distance, manuf_year, engines ## 1-5
@@ -445,6 +437,9 @@ To test, I'll produce summary statistics for wind gusts that are present and mis
 ```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=TRUE}
 ### Here, I split up all entries based on whether or not wind_gust is NULL
 ### Then, look at descriptive statistics of delay by those groups
+
+
+
 flt_test_03 %>%
   select(wind_gust, is_delay) %>%
   filter(!is.na(is_delay)) %>%
@@ -655,7 +650,7 @@ resi_err <- function(pred_col = 1) {
     }
 }
 
-op_base_mse <- resi_err(46); pred_bivar_mse <- resi_err(47); pred_multivar_mse <- resi_err(50)
+## op_base_mse <- resi_err(46); pred_bivar_mse <- resi_err(47); pred_multivar_mse <- resi_err(50)
 ```
 
 
@@ -689,24 +684,31 @@ flights_17 <- read_csv2(trim_ws = T, na = 'NULL', file = 'flights_17.csv', col_n
 
 test_17 <- flights_17 %>%
   filter(!is.na(dep_delay) == T) %>%
-  mutate(diff_20h = if_else(sched_dep_time < 2000
-                                ,1960 - sched_dep_time
-                                ,sched_dep_time - 2000)
-         ,sched_dep_time_metric = 100 * (trunc(sched_dep_time/100)) 
-         + 5/3 * as.numeric(str_sub(sched_dep_time, -2, -1))
-         ,pred_prob = 1/(1+exp(-(0.279603750 - 0.001999519 * diff_20h)))) %>%
+  mutate(diff_20h = if_else(sched_dep_time < 2000,
+                            1960 - sched_dep_time,
+                            sched_dep_time - 2000),
+         sched_dep_time_metric = 100 * (trunc(sched_dep_time/100)) + 5/3 * as.numeric(str_sub(sched_dep_time, -2, -1)),
+         pred_prob = 1/(1+exp(-(0.279603750 - 0.001999519 * diff_20h)))) %>%
   group_by(diff_20h) %>%
   filter(n() > 100) %>%
-  mutate(is_delay = if_else(dep_delay > 0, 1, 0)
-         ,op_delay = mean(is_delay)) %>%
-  ungroup()
+  mutate(is_delay = if_else(dep_delay > 0, 1, 0),
+         op_delay = mean(is_delay))
 
 sse <- sum(na.rm = T, (test_17$op_delay - test_17$pred_prob)^2)
 mse <- sse / (nrow(filter(test_17, !is.na(is_delay), !is.na(pred_prob))) - 2)
 
-paste('sse ', sse, 'mse ', mse)
+paste('sse ', signif(sse, 4), 'mse ', signif(mse, 4))
+
+```
+
+
+Mean squared error looks good
+
+```{r}
   
-test_17 %>%  
+test_17 %>%
+  select(sched_dep_time_metric, op_delay, pred_prob) %>%
+  unique() %>%
   ggplot() +
   geom_point(mapping = aes(x = sched_dep_time_metric, y = op_delay, color = 'Observed p'), size = 1) +
   geom_line(mapping = aes(x = sched_dep_time_metric, y = pred_prob, color = 'Predicted p'), size = 1.5) +
@@ -719,7 +721,7 @@ test_17 %>%
 ```
 
 
-Yes, I'm satisfied with this. Alternately I could update the model by replacing the 2013 data with 2017 data or combining them. More work for another day
+Graph looks good too. Yes, I'm satisfied with this. Alternately I could update the model by replacing the 2013 data with 2017 data or combining them. More work for another day
 
 
 ## Ax.1 Metadata
@@ -893,11 +895,16 @@ All bad choices. I generally wouldn't want a skew outside the range of -2 to 2. 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 dep_delay_skew %>%
   ggplot() +
-  geom_line(aes(i, skew_rightward, color = 'skew by cutoff')) +
+  geom_line(aes(i, skew_rightward, color = 'skew by cutoff'), size = 1.5) +
   theme_fivethirtyeight() +
   scale_color_fivethirtyeight(labels = 'skew by dep_delay cutoff'
                      ,name = '') +
-  ggtitle('Skew never comes close to a useful value')
+  ggtitle('Skew never comes close to a useful value') +
+  geom_hline(yintercept = 2, color = 'red', size = 1.5) +
+  ylim(0, 5) +
+  xlim(0, 120)
+
+
 ```
 
 
@@ -916,7 +923,7 @@ In a report centered around delay, the limited analysis of the delay variable ma
 3. Did missing values affect the results?
 
 See above for what I believe sufficiently addresses #1. For #2, the data shows that the two variables, scheduled departure time and departure frequency, are not as correlated as one would think.
-```{r}
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
 flights %>%
   filter(!is.na(dep_delay)) %>%
   mutate(half = round(2 * (hour + minute / 60)) / 2) %>%
@@ -929,19 +936,21 @@ flights %>%
   ungroup() %>%
   mutate(dep_time_object = hm(paste
                               (trunc(sched_dep_time/100) ## This line provides the hour
-                                ,str_sub(sched_dep_time,-2,-1))) ## This line provides the minute
-         ,sched_dep_time_metric = 100 * (trunc(sched_dep_time/100)) 
-         + as.numeric(str_sub(as.character(sched_dep_time), -2, -1)) / 3 * 5
-         ,diff_1935h = abs(as.numeric(dep_time_object - hm('19:35')) / 60)) %>%
+                                ,str_sub(sched_dep_time,-2,-1))), ## This line provides the minute
+         sched_dep_time_metric = 100 * (trunc(sched_dep_time/100)) + as.numeric(str_sub(as.character(sched_dep_time), -2, -1)) / 3 * 5,
+         diff_1935h = abs(as.numeric(dep_time_object - hm('19:35')) / 60)) %>%
   group_by(diff_1935h) %>%
   mutate(op_diff1935 = mean(is_delay, na.rm = T)) %>%
   ungroup() %>%
+  select(sched_dep_time_metric, dep_half) %>%
+  unique() %>%
   ggplot(aes(sched_dep_time_metric, dep_half, color = 'Departures per half hour')) +
   geom_point() +
   geom_smooth(aes(color = 'Smoothed departures per half hour')) +
-  scale_color_fivethirtyeight(labels = c('Departures per half hour', 'Smoothed departures per half hour')
-                              ,name = '') +
-  ggtitle('Departure frequency is bimodal but departure delay is not')
+  scale_color_fivethirtyeight(labels = c('Departures per half hour',
+                                         'Smoothed departures per half hour'),
+                              name = '') +
+  ggtitle('Departure frequency is bimodal but departure delay was not')
 ```
 
 
@@ -1042,4 +1051,4 @@ test_01 %>%
          ,cor_na_0 = cor(diff_1935h, na_0_is_delay, use = 'pairwise.complete.obs'))
 
 ```
-
+This looks fine
