@@ -1,0 +1,191 @@
+city,airport,dest_state
+Allentown,ABE,PA
+Albuquerque International Airport,ABQ,NM
+Nantucket,ACK,MA
+Atlantic City International Airport,ACY,NJ
+Augusta,AGS,GA
+Albany International Airport,ALB,NY
+Alamogordo,ALM,NM
+Amarillo,AMA,TX
+Anchorage International Airport,ANC,AK
+Aspen,ASE,CO
+Atlanta Hartsfield International Airport,ATL,GA
+Augusta,AUG,ME
+Austin Bergstrom International Airport,AUS,TX
+Asheville,AVL,NC
+Scranton,AVP,PA
+Kalamazoo-Battle Creek International Airport,AZO,MI
+Hartford,BDL,CT
+Bangor,BGR,ME
+Birmingham International Airport,BHM,AL
+Billings,BIL,MT
+Bismark,BIS,ND
+Nashville,BNA,TN
+Boise,BOI,ID
+"Boston, Logan International Airport",BOS,MA
+Battlecreek,BTL,MI
+Baton Rouge,BTR,LA
+Burlington,BTV,VT
+Buffalo,BUF,NY
+Burbank,BUR,CA
+Baltimore,BWI,MD
+Columbia,CAE,SC
+Akron,CAK,OH
+Chattanooga,CHA,TN
+Charleston,CHS,SC
+Cedar Rapids,CID,IA
+Clarksburg,CKB,WV
+Cleveland,CLE,OH
+Charlotte/Douglas International Airport,CLT,NC
+Columbus,CMH,OH
+Colorado Springs,COS,CO
+Casper,CPR,WY
+Corpus Christi,CRP,TX
+Charleston,CRW,WV
+Cincinnati,CVG,OH
+Cheyenne,CYS,WY
+Daytona Beach,DAB,FL
+Dallas Love Field Airport,DAL,TX
+Dayton,DAY,OH
+Washington National Airport,DCA,DC
+Denver International Airport,DEN,CO
+Detroit,DET,MI
+Dallas/Fort Worth International Airport,DFW,TX
+Dothan Regional Airport,DHN,AL
+Duluth,DLH,MN
+Des Moines,DSM,IA
+Detroit Metropolitan Airport,DTW,MI
+El Paso,ELP,TX
+Erie,ERI,PA
+Eugene,EUG,OR
+Evansville,EVV,IN
+Newark International Airport,EWR,NJ
+Key West International Airport,EYW,FL
+Fairbanks International Airport,FAI,AK
+Fargo,FAR,ND
+Fresno,FAT,CA
+Fayetteville,FAY,NC
+Flagstaff,FLG,AZ
+Fort Lauderdale-Hollywood International Airport,FLL,FL
+Flint,FNT,MI
+Sioux Falls,FSD,SD
+Fort Wayne,FWA,IN
+Fayetteville,FYV,AR
+Spokane International Airport,GEG,WA
+Grand Junction,GJT,CO
+Gulfport,GPT,MS
+Green Bay,GRB,WI
+Grand Rapids,GRR,MI
+Greensboro,GSO,NC
+Greenville,GSP,SC
+"Portland, Hillsboro Airport",HIO,OR
+Honolulu International Airport,HNL,HI
+"Houston, William B Hobby Airport",HOU,TX
+Westchester,HPN,NY
+Huntsville International Airport,HSV,AL
+Huntington Tri-State Airport,HTS,WV
+Tweed New Haven,HVN,CT
+Hyannis,HYA,MA
+"Washington,�Dulles International Airport",IAD,DC
+Dulles,IAD,VA
+"Houston, George Bush Intercontinental Airport",IAH,TX
+Wichita,ICT,KS
+Indianapolis International Airport,IND,IN
+Winston-Salem,INT,NC
+Islip,ISP,NY
+Hilo,ITO,HI
+Jackson Hole,JAC,WY
+Jackson,JAN,MS
+Jacksonville,JAX,FL
+"New York,�John F Kennedy International Airport",JFK,NY
+Juneau International Airport,JNU,AK
+Kailua,KOA,HI
+Lansing,LAN,MI
+"Las Vegas,�Las Vegas McCarran International Airport",LAS,NV
+Los Angeles International Airport,LAX,CA
+Lubbock,LBB,TX
+Lexington,LEX,KY
+"New York,�La Guardia Airport",LGA,NY
+Long Beach,LGB,CA
+Lihue,LIH,HI
+Little Rock National Airport,LIT,AR
+Lincoln,LNK,NE
+Midland,MAF,TX
+Saginaw,MBS,MI
+Kansas City,MCI,MO
+Orlando,MCO,FL
+Harrisburg,MDT,PA
+Chicago Midway Airport,MDW,IL
+Memphis,MEM,TN
+Montgomery,MGM,AL
+Manchester,MHT,NH
+Miami International Airport,MIA,FL
+Milwaukee,MKE,WI
+Moline,MLI,IL
+Mobile,MOB,AL
+Montpelier,MPV,VT
+Madison,MSN,WI
+Minneapolis/St.Paul International Airport,MSP,MN
+New Orleans International Airport,MSY,LA
+Myrtle Beach,MYR,SC
+Oakland,OAK,CA
+Kahului,OGG,HI
+Oklahoma City,OKC,OK
+Omaha,OMA,NE
+Ontario,ONT,CA
+"Chicago,�O'Hare International Airport Airport",ORD,IL
+Norfolk,ORF,VA
+Worcester,ORH,MA
+West Palm Beach,PBI,FL
+Portland International Airport,PDX,OR
+Panama City-Bay County International Airport,PFN,FL
+Newport News,PHF,VA
+Philadelphia,PHL,PA
+"Phoenix,�Phoenix Sky Harbor International Airport",PHX,AZ
+Peoria,PIA,IL
+St. Petersburg,PIE,FL
+Pierre,PIR,SD
+Pittsburgh,PIT,PA
+Pensacola,PNS,FL
+"Pasco, Pasco/Tri-Cities Airport",PSC,WA
+Palm Springs,PSP,CA
+Pueblo,PUB,CO
+Providence - T.F. Green Airport,PVD,RI
+Portland,PWM,ME
+Rapid City,RAP,SD
+Raleigh,RDU,NC
+Richmond,RIC,VA
+Rock Springs,RKS,WY
+Reno-Tahoe International Airport,RNO,NV
+Roanoke,ROA,VA
+Rochester,ROC,NY
+Rochester,RST,MN
+Fort Meyers,RSW,FL
+Rutland,RUT,VT
+San Diego,SAN,CA
+San Antonio International Airport,SAT,TX
+Savannah,SAV,GA
+South Bend,SBN,IN
+Louisville,SDF,KY
+"Seattle, Tacoma International Airport",SEA,WA
+San Francisco International Airport,SFO,CA
+Springfield,SGF,MO
+Shreveport,SHV,LA
+San Jose,SJC,CA
+Salt Lake City,SLC,UT
+Salem,SLE,OR
+Sacramento,SMF,CA
+Santa Ana,SNA,CA
+Sarasota,SRQ,FL
+"St Louis, Lambert International Airport",STL,MO
+Newburgh,SWF,NY
+Syracuse,SYR,NY
+Toledo,TOL,OH
+Tampa,TPA,FL
+Bristol,TRI,TN
+Trenton,TTN,NJ
+Tulsa,TUL,OK
+Tucson International Airport,TUS,AZ
+Knoxville,TYS,TN
+Northwest Arkansas Regional Airport,XNA,AR
+Yuma International Airport,YUM,AZ
