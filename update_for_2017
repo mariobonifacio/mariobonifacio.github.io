@@ -1,0 +1,128 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r setup}
+library(tidyverse); library(lubridate); library(ggalluvial); library(ggthemes); library(nycflights13)
+```
+
+
+
+
+```{r}
+## Load csv files
+flights_17 <- read_csv2(file = 'flights_17.csv', na = 'NULL', trim_ws = T)
+# airlines_17 <- read_csv(file = 'airlines_17.csv', trim_ws = T)
+# airports_17 <- read_csv(file = 'airports_17.csv', trim_ws = T, col_names = c('airport_name', 'airport_iata', 'airport_st'))
+```
+
+
+```{r}
+## Make metric hour function
+metric_time <- function(horhm, mm = rep(-1, length(horhm))){
+  if(mm < 0){
+    return(trunc(horhm/100) + (horhm/100 - trunc(horhm/100)) * 5 / 3)
+  }
+  else{
+    return(horhm + mm/60)
+  }
+}
+
+```
+
+
+```{r}
+## Make metric month function
+metric_month <- function(mo, mo_day){
+  return(mo + (mo_day - 0.5) / max(mo_day))
+}
+```
+
+
+```{r}
+##  Finds top correlation among independent variables ##
+## This function accepts a single-column tibble,
+## and an equal-length tibble then finds correlation
+## between the dependent variable and each independent
+## variables
+
+hi_cor <- function(y, test_tibble){  
+  cbind(y, test_tibble) %>%
+  cor(use = 'pairwise.complete.obs') %>%
+  as.data.frame(row.names = colnames(.)) %>%
+  select(1) %>%
+  filter(.[1] < 1) %>%
+  arrange()
+}
+
+```
+
+
+
+
+```{r}
+## build a test set
+test_17 <- flights_17 %>%
+  filter(!is.na(dep_delay)) %>%
+  mutate(is_delay = dep_delay > 0,
+         diff_4_5mo = abs(4.5 - month)) %>%
+  group_by(month) %>%
+  mutate(month_metric = month + (day-0.5)/max(day)) %>%
+  ungroup()
+
+######         
+```
+
+```{r}
+## Test month ##
+
+cor_df <- tibble(i = 1L, cor_i = 0.001)
+
+for(i in 101:1231) {
+  cor_df[i, 1] <- i/100
+  cor_df[i, 2] <- cor(abs(i/100 - test_17$month_metric), test_17$is_delay)
+}
+
+cor_df %>%
+  arrange(desc(abs(cor_i)))
+
+```
+
+```{r}
+
+mdl <- test_17 %>%
+  glm(formula = is_delay ~ diff_4mo, family = 'binomial') %>%
+  coef()
+
+test_17 %>%
+  group_by(month, day) %>%
+  mutate(day_actual = mean(is_delay, na.rm = T),
+         month_pred = 1/(1 + exp(-(mdl[1] + mdl[2] * diff_4mo)))) %>%
+  ungroup() %>%
+  ggplot() +
+  geom_point(aes(month_metric, day_actual)) +
+  geom_line(aes(month_metric, month_pred)) +
+  xlim(1,12)
+           
+  
+
+```
+
+
+
+```{r}
+## Model ##
+test_17 %>%
+  glm(formula = is_delay ~ distance, family = 'binomial') %>%
+  summary()
+
+```
+
+
+
+```{r}
+names(test_17)
+```
+
