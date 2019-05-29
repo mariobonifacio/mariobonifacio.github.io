@@ -42,7 +42,6 @@ metric_month <- function(mo, mo_day){
 
 
 ```{r}
-##  Finds top correlation among independent variables ##
 ## This function accepts a single-column tibble,
 ## and an equal-length tibble then finds correlation
 ## between the dependent variable and each independent
@@ -60,17 +59,33 @@ hi_cor <- function(y, test_tibble){
 ```
 
 
-
-
 ```{r}
-## build a test set
+## build a test set 
 test_17 <- flights_17 %>%
-  filter(!is.na(dep_delay)) %>%
+  filter(!is.na(dep_delay)) %>% ## Remove flights that are missing dep_delay
   mutate(is_delay = dep_delay > 0,
-         diff_4_5mo = abs(4.5 - month)) %>%
+         diff_531mo = abs(5.31 - month),
+         wkday = weekdays(time_hour)) %>%
   group_by(month) %>%
-  mutate(month_metric = month + (day-0.5)/max(day)) %>%
+  mutate(month_metric = month + (day-0.5)/max(day),
+         q90_month = quantile(dep_delay, probs = 0.9, na.rm = T),
+         time_metric = hour + (minute + .5) / 60,
+         diff_21h = abs(21 - time_metric)) %>%
+  ungroup() %>%
+  group_by(time_metric) %>%
+  mutate(q90_time = quantile(dep_delay, probs = 0.9, na.rm = T)) %>%
   ungroup()
+
+test_17 %>%
+  select(diff_21h,time_metric, q90_time) %>%
+  unique() %>%
+  ggplot() +
+  geom_point(mapping = aes(time_metric, q90_time, color = 'ab'), size = 1) +
+  geom_smooth(aes(time_metric, q90_time, color = 'ab'), method = 'lm') +
+  geom_point(mapping = aes(diff_21h, q90_time, color = 'bo'), size = 1) +
+  geom_smooth(aes(diff_21h, q90_time, color = 'bo'), method = 'lm') +
+  theme_fivethirtyeight() +
+  scale_color_fivethirtyeight()
 
 ######         
 ```
@@ -80,9 +95,9 @@ test_17 <- flights_17 %>%
 
 cor_df <- tibble(i = 1L, cor_i = 0.001)
 
-for(i in 101:1231) {
+for(i in 1500:2300) {
   cor_df[i, 1] <- i/100
-  cor_df[i, 2] <- cor(abs(i/100 - test_17$month_metric), test_17$is_delay)
+  cor_df[i, 2] <- cor(abs(i/100 - test_17$month), test_17$q90_month)
 }
 
 cor_df %>%
@@ -91,21 +106,35 @@ cor_df %>%
 ```
 
 ```{r}
+## Test time ##
 
+cor_df <- tibble(i = 1L, cor_i = 0.001)
+
+for(i in 900:2300) {
+  cor_df[i, 1] <- i/100
+  cor_df[i, 2] <- cor(abs(i/100 - test_17$time_metric), test_17$q90_time)
+}
+
+cor_df %>%
+  arrange(desc(abs(cor_i)))
+
+```
+
+
+```{r}
+
+
+```
+
+
+```{r}
 mdl <- test_17 %>%
-  glm(formula = is_delay ~ diff_4mo, family = 'binomial') %>%
-  coef()
+  glm(formula = dep_delay ~ diff_531mo + diff_21h + wkday, family = 'gaussian') %>%
+  summary()
 
-test_17 %>%
-  group_by(month, day) %>%
-  mutate(day_actual = mean(is_delay, na.rm = T),
-         month_pred = 1/(1 + exp(-(mdl[1] + mdl[2] * diff_4mo)))) %>%
-  ungroup() %>%
-  ggplot() +
-  geom_point(aes(month_metric, day_actual)) +
-  geom_line(aes(month_metric, month_pred)) +
-  xlim(1,12)
-           
+
+
+
   
 
 ```
