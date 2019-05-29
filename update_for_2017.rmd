@@ -63,11 +63,11 @@ hi_cor <- function(y, test_tibble){
 ## build a test set 
 test_17 <- flights_17 %>%
   filter(!is.na(dep_delay)) %>% ## Remove flights that are missing dep_delay
-  mutate(is_delay = dep_delay > 0,
-         diff_531mo = abs(5.31 - month),
-         wkday = weekdays(time_hour)) %>%
+  mutate(is_delay = dep_delay > 0, ## Simplified binary, knowing that logical coerces to numeric as 1 or 0
+         diff_531mo = abs(5.31 - month), 
+         wkday = weekdays(time_hour)) %>% ## Alternately, I could use wday to get the day number, but get better results with categorical variables
   group_by(month) %>%
-  mutate(month_metric = month + (day-0.5)/max(day),
+  mutate(month_metric = metric_month(month, day),
          q90_month = quantile(dep_delay, probs = 0.9, na.rm = T),
          time_metric = hour + (minute + .5) / 60,
          diff_21h = abs(21 - time_metric)) %>%
@@ -80,10 +80,10 @@ test_17 %>%
   select(diff_21h,time_metric, q90_time) %>%
   unique() %>%
   ggplot() +
-  geom_point(mapping = aes(time_metric, q90_time, color = 'ab'), size = 1) +
-  geom_smooth(aes(time_metric, q90_time, color = 'ab'), method = 'lm') +
-  geom_point(mapping = aes(diff_21h, q90_time, color = 'bo'), size = 1) +
-  geom_smooth(aes(diff_21h, q90_time, color = 'bo'), method = 'lm') +
+  geom_point(mapping = aes(time_metric, q90_time, color = 'time'), size = 1) +
+  geom_smooth(aes(time_metric, q90_time, color = 'time'), method = 'loess') +
+  geom_point(mapping = aes(diff_21h, q90_time, color = 'adj_time'), size = 1) +
+  geom_smooth(aes(diff_21h, q90_time, color = 'adj_time'), method = 'loess') +
   theme_fivethirtyeight() +
   scale_color_fivethirtyeight()
 
@@ -95,7 +95,7 @@ test_17 %>%
 
 cor_df <- tibble(i = 1L, cor_i = 0.001)
 
-for(i in 1500:2300) {
+for(i in 101:1231) {
   cor_df[i, 1] <- i/100
   cor_df[i, 2] <- cor(abs(i/100 - test_17$month), test_17$q90_month)
 }
@@ -121,24 +121,33 @@ cor_df %>%
 ```
 
 
-```{r}
-
-
-```
-
 
 ```{r}
 mdl <- test_17 %>%
   glm(formula = dep_delay ~ diff_531mo + diff_21h + wkday, family = 'gaussian') %>%
   summary()
 
+mdl_df <- mdl$coefficients %>%
+  as_tibble() %>%
+  mutate(x_value = row.names(mdl$coefficients)) %>%
+  select(x_value, est_coeff = 1, se = 2) %>%
+  mutate(coeff_90 = est_coeff + 1.28 * se) 
+```
 
 
-
+```{r}  
+test_17 %>%
+  group_by(wkday, month_metric, time_metric) %>%
+  summarize(q90_all = quantile(dep_delay, probs = 0.9),
+            wkend = max(!(wkday %in% c('Friday', 'Saturday', 'Sunday')))) %>%
+  ggplot() +
+  geom_point(mapping = aes(time_metric, q90_all,
+                            color = wkend,
+                            alpha = !wkend)) +
+  jitter(time_metric)
   
 
 ```
-
 
 
 ```{r}
@@ -148,7 +157,6 @@ test_17 %>%
   summary()
 
 ```
-
 
 
 ```{r}
