@@ -131,7 +131,14 @@ mdl_df <- mdl$coefficients %>%
   as_tibble() %>%
   mutate(x_value = row.names(mdl$coefficients)) %>%
   select(x_value, est_coeff = 1, se = 2) %>%
-  mutate(coeff_90 = est_coeff + 1.28 * se) 
+  mutate(coeff_90 = est_coeff + 1.28 * se,
+         y_form = case_when(row_number() == 1 ~ as.character(est_coeff),
+                             row_number() %in% 2:(length(est_coeff) - 1) ~
+                               paste(est_coeff,'*', x_value, '+'),
+                             row_number() == length(est_coeff) ~
+                               paste(est_coeff,'*', x_value)))
+
+paste(mdl_df[[5]])
 ```
 
 
