@@ -5,14 +5,15 @@ output: html_notebook
 
 
 ```{r setup}
+knitr::opts_chunk$set(message = FALSE)
 library(tidyverse); library(lubridate); library(ggalluvial); library(ggthemes); library(nycflights13)
 ```
 
 
 
 
-```{r}
-## Load csv files
+```{r, echo=FALSE, message=FALSE}
+## Load csv files from mariobonifacio.github.io
 flights_17 <- read_csv2(file = 'flights_17.csv', na = 'NULL', trim_ws = T)
 # airlines_17 <- read_csv(file = 'airlines_17.csv', trim_ws = T)
 # airports_17 <- read_csv(file = 'airports_17.csv', trim_ws = T, col_names = c('airport_name', 'airport_iata', 'airport_st'))
@@ -59,36 +60,57 @@ hi_cor <- function(y, test_tibble){
 ```
 
 
-```{r}
+```{r, message=FALSE}
 ## build a test set 
 test_17 <- flights_17 %>%
   filter(!is.na(dep_delay)) %>% ## Remove flights that are missing dep_delay
-  mutate(is_delay = dep_delay > 0, ## Simplified binary, knowing that logical coerces to numeric as 1 or 0
-         diff_531mo = abs(5.31 - month), 
-         wkday = weekdays(time_hour)) %>% ## Alternately, I could use wday to get the day number, but get better results with categorical variables
   group_by(month) %>%
-  mutate(month_metric = metric_month(month, day),
-         q90_month = quantile(dep_delay, probs = 0.9, na.rm = T),
-         time_metric = hour + (minute + .5) / 60,
+  mutate(is_delay = dep_delay > 0,
+         diff_531mo = abs(5.31 - month),
+         wkday = weekdays(time_hour),
+         month_metric = metric_month(month, day),  ## Using my function
+         time_metric = metric_time(sched_dep_time), ## Using my function
          diff_21h = abs(21 - time_metric)) %>%
   ungroup() %>%
-  group_by(time_metric) %>%
-  mutate(q90_time = quantile(dep_delay, probs = 0.9, na.rm = T)) %>%
-  ungroup()
-
-test_17 %>%
-  select(diff_21h,time_metric, q90_time) %>%
-  unique() %>%
-  ggplot() +
-  geom_point(mapping = aes(time_metric, q90_time, color = 'time'), size = 1) +
-  geom_smooth(aes(time_metric, q90_time, color = 'time'), method = 'loess') +
-  geom_point(mapping = aes(diff_21h, q90_time, color = 'adj_time'), size = 1) +
-  geom_smooth(aes(diff_21h, q90_time, color = 'adj_time'), method = 'loess') +
-  theme_fivethirtyeight() +
-  scale_color_fivethirtyeight()
-
-######         
+  group_by(month_metric, time_metric) %>%
+  mutate()
 ```
+
+
+
+```{r}
+
+lm_formula <- function(my_df, )
+
+mdl <- test_17 %>%
+  lm(formula = dep_delay ~ diff_531mo + diff_21h + wkday) %>%
+  summary()
+
+mdl_df <- mdl$coefficients %>%
+  as_tibble() %>%
+  mutate(x_value = row.names(mdl$coefficients),
+         q90_pred = 1) %>%
+  select(x_value, 1, 2)
+  
+
+  
+
+```
+
+
+```{r}
+test_17 %>%
+  group_by(week(time_hour)) %>%
+  mutate(quantile_90 = quantile(dep_delay, probs = 0.9),
+         wk = week(time_hour)) %>%
+  ungroup() %>%
+  ggplot() +
+  geom_point(mapping = aes(wk, quantile_90)) +
+  geom_smooth(mapping = aes(wk, quantile_90, color = wkday))
+  
+```
+
+
 
 ```{r}
 ## Test month ##
@@ -104,6 +126,7 @@ cor_df %>%
   arrange(desc(abs(cor_i)))
 
 ```
+
 
 ```{r}
 ## Test time ##
@@ -121,52 +144,19 @@ cor_df %>%
 ```
 
 
+```{r, message=FALSE}
+## With this plot, I wanted to show why I chose to use a difference factor
+## rather than just using the time of day variable. Intuitively, the
+## reason is that 
 
-```{r}
-mdl <- test_17 %>%
-  glm(formula = dep_delay ~ diff_531mo + diff_21h + wkday, family = 'gaussian') %>%
-  summary()
-
-mdl_df <- mdl$coefficients %>%
-  as_tibble() %>%
-  mutate(x_value = row.names(mdl$coefficients)) %>%
-  select(x_value, est_coeff = 1, se = 2) %>%
-  mutate(coeff_90 = est_coeff + 1.28 * se,
-         y_form = case_when(row_number() == 1 ~ as.character(est_coeff),
-                             row_number() %in% 2:(length(est_coeff) - 1) ~
-                               paste(est_coeff,'*', x_value, '+'),
-                             row_number() == length(est_coeff) ~
-                               paste(est_coeff,'*', x_value)))
-
-paste(mdl_df[[5]])
-```
-
-
-```{r}  
 test_17 %>%
-  group_by(wkday, month_metric, time_metric) %>%
-  summarize(q90_all = quantile(dep_delay, probs = 0.9),
-            wkend = max(!(wkday %in% c('Friday', 'Saturday', 'Sunday')))) %>%
+  select(diff_21h,time_metric, q90_time) %>%
+  unique() %>%
   ggplot() +
-  geom_point(mapping = aes(time_metric, q90_all,
-                            color = wkend,
-                            alpha = !wkend)) +
-  jitter(time_metric)
-  
-
+  geom_point(mapping = aes(time_metric, q90_time, color = 'time'), size = 1) +
+  geom_smooth(aes(time_metric, q90_time, color = 'time'), method = 'loess') +
+  geom_point(mapping = aes(diff_21h, q90_time, color = 'adj_time'), size = 1) +
+  geom_smooth(aes(diff_21h, q90_time, color = 'adj_time'), method = 'loess') +
+  theme_fivethirtyeight() +
+  scale_color_fivethirtyeight()
 ```
-
-
-```{r}
-## Model ##
-test_17 %>%
-  glm(formula = is_delay ~ distance, family = 'binomial') %>%
-  summary()
-
-```
-
-
-```{r}
-names(test_17)
-```
-
