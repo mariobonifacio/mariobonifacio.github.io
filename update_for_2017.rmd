@@ -10,8 +10,6 @@ library(tidyverse); library(lubridate); library(ggalluvial); library(ggthemes); 
 ```
 
 
-
-
 ```{r, echo=FALSE, message=FALSE}
 ## Load csv files from mariobonifacio.github.io
 flights_17 <- read_csv2(file = 'flights_17.csv', na = 'NULL', trim_ws = T)
@@ -60,11 +58,7 @@ hi_cor <- function(y, test_tibble){
 test_17 <- flights_17 %>%
   filter(!is.na(dep_delay)) %>% ## Remove flights that are missing dep_delay
   group_by(month) %>%
-<<<<<<< HEAD
   mutate(on_time = dep_delay <= 1, ## This and the next line split the data set into on-time flights...
-=======
-  mutate(on_time = dep_delay <= 1, ## This and the next line split the data set into no delay...
->>>>>>> 543ee5c1db1a8ee67e7e7305413b767c85937233
          ln_delay = if_else(dep_delay > 1, log(dep_delay), NA_real_), ## ...and log-length of delay, if delay
          diff_5mo = abs(5.31 - month), 
          wkday = weekdays(time_hour),
@@ -72,18 +66,6 @@ test_17 <- flights_17 %>%
          time_metric = metric_time(sched_dep_time), ## Using my function
          diff_21h = abs(21.45 - time_metric)) %>%
   ungroup()
-<<<<<<< HEAD
-=======
-
-ggplot(data = test_17, mapping = aes(ln_delay), fill = 'gray') +
-  geom_histogram(bins = 12) +
-  geom_vline(xintercept = mean(test_17$ln_delay, na.rm = T), color = 'orange', size = 1.5) +
-  geom_vline(xintercept = median(test_17$ln_delay, na.rm = T), color = 'purple', size = 1.5) +
-  theme_fivethirtyeight() +
-  scale_color_fivethirtyeight(labels = c('orange', 'purple')) 
-  ggtitle('blerk')
-  
->>>>>>> 543ee5c1db1a8ee67e7e7305413b767c85937233
 ```
 
 
@@ -92,9 +74,6 @@ ggplot(data = test_17, mapping = aes(ln_delay), fill = 'gray') +
 hi_cor(test_17 %>% select(ln_delay),
        test_17 %>%
          select(diff_21h, diff_5mo, hour, distance, air_time, sched_arr_time, sched_dep_time, month))
-
-
-<<<<<<< HEAD
 ```
 
 
@@ -102,22 +81,12 @@ hi_cor(test_17 %>% select(ln_delay),
 ## Build Linear model using month, time, and weekday data
 mdl <- lm(data = test_17, formula = ln_delay ~ diff_21h + diff_5mo + wkday) %>%
   summary()
-=======
->>>>>>> 543ee5c1db1a8ee67e7e7305413b767c85937233
+
 ```
 
 
-```{r}
-<<<<<<< HEAD
-=======
-## Build Linear model using month, time, and weekday data
-mdl <- lm(data = test_17, formula = ln_delay ~ diff_21h + diff_5mo + wkday) %>%
-  summary()
-```
-
 
 ```{r}
->>>>>>> 543ee5c1db1a8ee67e7e7305413b767c85937233
 ## Pull out the coefficients and standard error
 coefs <- mdl$coefficients %>%
   as_tibble() %>%
@@ -175,7 +144,6 @@ paste(coefs_2[1, 2], "+",
 
 ```{r}
 ## Add predicted delay and probability of no delay to test tibble
-
 pred_17 <- test_17 %>%
   mutate(pred_delay = exp(3.85236933552203 +
            -0.0636324279034302 * diff_21h +
@@ -186,7 +154,6 @@ pred_17 <- test_17 %>%
            -0.108048760292188 * (wkday == 'Thursday') +
            -0.0454143145559025 * (wkday == 'Tuesday') +
            -0.17399920842538 * (wkday == 'Wednesday')),
-<<<<<<< HEAD
          p_on_time = 1 / (1 + exp(-(-0.868973986936626 +
                                       0.132485588024036 * diff_21h +
                                       0.0938310236036926 * diff_5mo +
@@ -196,15 +163,6 @@ pred_17 <- test_17 %>%
                                       0.0979982073199806 * (wkday == 'Thursday') +
                                       0.265313809910303 * (wkday == 'Tuesday') +
                                       0.316247648362565 * (wkday == 'Wednesday')))))
-=======
-         p_on_time = 1 / (1 + exp(-(-0.868973986936626 + 0.132485588024036 * diff_21h + 0.0938310236036926 * diff_5mo + 0.152317762763714 * (wkday == 'Monday') + 0.312356993431681 * (wkday == 'Saturday') + 0.323550415257237 * (wkday == 'Sunday') + 0.0979982073199806 * (wkday == 'Thursday') + 0.265313809910303 * (wkday == 'Tuesday') + 0.316247648362565 * (wkday == 'Wednesday')))))
->>>>>>> 543ee5c1db1a8ee67e7e7305413b767c85937233
-
-pred_17 %>%
-  mutate(wk = week(time_hour)) %>%
-  ggplot() +
-  geom_point(aes(month_metric, p_on_time, color = wkday)) +
-  ##geom_smooth(aes(month_metric, on_time))
 
 ```
 
@@ -217,7 +175,7 @@ cor_df <- tibble(i = 1L, cor_i = 0.001)
 
 for(i in 101:1231) {
   cor_df[i, 1] <- i/100
-  cor_df[i, 2] <- cor(abs(i/100 - test_17$month), test_17$q90_month)
+  cor_df[i, 2] <- cor(abs(i/100 - test_17$month), test_17$ln_delay)
 }
 
 cor_df %>%
@@ -232,13 +190,12 @@ cor_df %>%
 cor_df <- tibble(i = 1L, cor_i = 0.001)
 
 for(i in 900:2300) {
-  cor_df[i, 1] <- trunc(i/100) + 
+  cor_df[i, 1] <- i/100
   cor_df[i, 2] <- cor(abs(i/100 - test_17$time_metric), test_17$ln_delay, use = 'pairwise.complete.obs')
 }
 
 cor_df %>%
   arrange(desc(abs(cor_i)))
-
 ```
 
 
@@ -274,7 +231,7 @@ ggplot(data = test_17, mapping = aes(ln_delay), fill = 'gray') +
   geom_vline(xintercept = median(test_17$ln_delay, na.rm = T), color = 'purple', size = 1.5) +
   theme_fivethirtyeight() +
   scale_color_fivethirtyeight(labels = c('orange', 'purple')) 
-  ggtitle('blerk')
+  ggtitle('Distribution looks pretty normal')
 
 kurtosis(test_17$dep_delay); skewness(test_17$dep_delay)
 ```
