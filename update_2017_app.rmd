@@ -1,0 +1,91 @@
+---
+title: "On flight delays"
+subtitle: "When you take off matters most"
+output: html_notebook
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = FALSE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+
+```{r eruptions, echo=FALSE, message=FALSE, warning=FALSE}
+library(shiny); library(lubridate); library(tidyverse); library(shinyTime)
+
+ui <- bootstrapPage( ## Define the UI
+  dateInput(inputId = 'fly_date',
+            label = 'Flight date',
+            value = NULL,
+            min = NULL,
+            max = NULL,
+            format = "yyyy-mm-dd",
+            startview = "month",
+            weekstart = 0,
+            language = "en",
+            width = NULL,
+            autoclose = TRUE,
+            datesdisabled = NULL,
+            daysofweekdisabled = NULL),
+  sliderInput(inputId = 'hr', label = 'Flight hour: ', min = 0, max = 23, value = 12, width = '100%'),
+  sliderInput(inputId = 'min', label = 'Flight minute: ', min = 0, max = 59, value = 30, width = '100%'),
+  plotOutput('plot')
+)
+
+# input$fly_date <- '2019-07-03'; input$hr <- 9; input$min <- 45
+
+server <- function(input, output) { ## Define the server code
+  output$plot <- renderPlot({
+    
+    tibble(met_mo = month(ymd(input$fly_date)) + (day(ymd(input$fly_date)) - 0.5) / (days_in_month(ymd(input$fly_date))),
+           met_hr = input$hr + (input$min + 0.5) / 60,
+           wkday = weekdays(ymd(input$fly_date))) %>%
+      mutate(diff_21h = abs(met_hr - 21.45),
+             diff_5mo = abs(met_mo - 5.31),
+             pred_delay = exp(3.85236933552203 +
+                                -0.0636324279034302 * diff_21h +
+                                -0.0541743901271069 * diff_5mo +
+                                -0.0618142578716507 * (wkday == 'Monday') +
+                                -0.125034427355075 * (wkday == 'Saturday') +
+                                -0.172379656023462 * (wkday == 'Sunday') +
+                                -0.108048760292188 * (wkday == 'Thursday') +
+                                -0.0454143145559025 * (wkday == 'Tuesday') +
+                                -0.17399920842538 * (wkday == 'Wednesday')),
+             p_on_time = 1 / (1 + exp(-(-0.868973986936626 +
+                                          0.132485588024036 * diff_21h +
+                                          0.0938310236036926 * diff_5mo +
+                                          0.152317762763714 * (wkday == 'Monday') +
+                                          0.312356993431681 * (wkday == 'Saturday') +
+                                          0.323550415257237 * (wkday == 'Sunday') +
+                                          0.0979982073199806 * (wkday == 'Thursday') +
+                                          0.265313809910303 * (wkday == 'Tuesday') +
+                                          0.316247648362565 * (wkday == 'Wednesday'))))) %>%
+      ggplot() +
+      geom_point(aes(x = met_hr, y = pred_delay)) +
+      ggtitle('m')
+
+
+    
+    
+        # plot(x = rep(round(input$hr * 100 +input$min, 1), 3),
+        #  y = c(100/(1+exp(-(0.279603750 - (0.001999519 - 0.0000148) * abs(input$hr * 60 + input$min - (19 * 60 + 35))))),
+        #        100/(1+exp(-(0.279603750 - 0.001999519 * abs(input$hr * 60 + input$min - (19 * 60 + 35))))),
+        #        100/(1+exp(-(0.279603750 - (0.001999519 + 0.0000148) * abs(input$hr * 60 + input$min - (19 * 60 + 35)))))),
+        #  xlim = range(input$hr * 100, input$hr * 100 + 55),
+        #  type = 'b',
+        #  lwd = 3,
+        #  lty = 2,
+        #  tck = 0.02,
+        #  xlab = input$fly_date,
+        #  ylab = 'Percent chance of delay, with std. err. bars',
+        #  pch = 3,
+        #  main = paste('Plan around a chance of delay of ', round(100/(1+exp(-(0.279603750 - (0.001999519) * abs(input$hr * 60 + input$min - (19 * 60 + 35)))))), '%'))
+  })
+}
+shinyApp(ui = ui, server = server) ## Return a Shiny app object
+```
+
