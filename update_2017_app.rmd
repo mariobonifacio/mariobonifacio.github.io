@@ -15,7 +15,7 @@ knitr::opts_chunk$set(
 
 
 ```{r eruptions, echo=FALSE, message=FALSE, warning=FALSE}
-library(shiny); library(lubridate); library(tidyverse); library(shinyTime)
+library(shiny); library(lubridate); library(tidyverse)
 
 ui <- bootstrapPage( ## Define the UI
   dateInput(inputId = 'fly_date',
@@ -41,6 +41,8 @@ ui <- bootstrapPage( ## Define the UI
 server <- function(input, output) { ## Define the server code
   output$plot <- renderPlot({
     
+    
+    
     tibble(met_mo = month(ymd(input$fly_date)) + (day(ymd(input$fly_date)) - 0.5) / (days_in_month(ymd(input$fly_date))),
            met_hr = input$hr + (input$min + 0.5) / 60,
            wkday = weekdays(ymd(input$fly_date))) %>%
@@ -65,7 +67,7 @@ server <- function(input, output) { ## Define the server code
                                           0.265313809910303 * (wkday == 'Tuesday') +
                                           0.316247648362565 * (wkday == 'Wednesday'))))) %>%
       ggplot() +
-      geom_point(aes(x = met_hr, y = pred_delay)) +
+      geom_point(aes(x = p_on_time, y = pred_delay)) +
       ggtitle('m')
 
 
