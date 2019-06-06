@@ -1,6 +1,6 @@
 ---
-title: "On flight delays"
-subtitle: "When you take off matters most"
+title: "For flight delays, when you depart is key"
+# subtitle: "When you take off matters most"
 output: html_notebook
 runtime: shiny
 ---
@@ -15,7 +15,7 @@ knitr::opts_chunk$set(
 
 
 ```{r eruptions, echo=FALSE, message=FALSE, warning=FALSE}
-library(shiny); library(lubridate); library(tidyverse)
+library(shiny); library(lubridate); library(tidyverse); library(ggthemes)
 
 ui <- bootstrapPage( ## Define the UI
   dateInput(inputId = 'fly_date',
@@ -41,36 +41,63 @@ ui <- bootstrapPage( ## Define the UI
 server <- function(input, output) { ## Define the server code
   output$plot <- renderPlot({
     
+    coef <- tibble(mn = c(3.85236934,
+                          -0.06363243,
+                          -0.05417439,
+                          -0.06181426,
+                          -0.12503443,
+                          -0.17237966,
+                          -0.10804876,
+                          -0.04541431,
+                          -0.17399921),
+                   se = c(0.0121161721,
+                          0.0008861738,
+                          0.0020117717,
+                          0.0135075053,
+                          0.0151832949,
+                          0.0140442096,
+                          0.0134079232,
+                          0.0139179082,
+                          0.0139245864))
+
+    my_norm <- tibble(.rows = 10000)
+    for(i in 1:9) my_norm[i] = rnorm(n = nrow(my_norm), mean = coef[[i, 1]], sd = coef[[i, 2]])
+
+    my_pred <- my_norm %>%
+      mutate(pred_delay = exp(V1 +
+                                V2 * abs(input$hr + (input$min + 0.5) / 60 - 21.45) +
+                                V3 * abs(month(ymd(input$fly_date)) + (day(ymd(input$fly_date)) - 0.5) /
+                                           (days_in_month(ymd(input$fly_date))) - 5.31) +
+                                V4 * (weekdays(ymd(input$fly_date)) == 'Monday') +
+                                V5 * (weekdays(ymd(input$fly_date)) == 'Saturday') +
+                                V6 * (weekdays(ymd(input$fly_date)) == 'Sunday') +
+                                V7 * (weekdays(ymd(input$fly_date)) == 'Thursday') +
+                                V8 * (weekdays(ymd(input$fly_date)) == 'Tuesday') +
+                                V9 * (weekdays(ymd(input$fly_date)) == 'Wednesday')))
     
+    mdn_pred = median(my_pred$pred_delay)
     
-    tibble(met_mo = month(ymd(input$fly_date)) + (day(ymd(input$fly_date)) - 0.5) / (days_in_month(ymd(input$fly_date))),
-           met_hr = input$hr + (input$min + 0.5) / 60,
-           wkday = weekdays(ymd(input$fly_date))) %>%
-      mutate(diff_21h = abs(met_hr - 21.45),
-             diff_5mo = abs(met_mo - 5.31),
-             pred_delay = exp(3.85236933552203 +
-                                -0.0636324279034302 * diff_21h +
-                                -0.0541743901271069 * diff_5mo +
-                                -0.0618142578716507 * (wkday == 'Monday') +
-                                -0.125034427355075 * (wkday == 'Saturday') +
-                                -0.172379656023462 * (wkday == 'Sunday') +
-                                -0.108048760292188 * (wkday == 'Thursday') +
-                                -0.0454143145559025 * (wkday == 'Tuesday') +
-                                -0.17399920842538 * (wkday == 'Wednesday')),
-             p_on_time = 1 / (1 + exp(-(-0.868973986936626 +
-                                          0.132485588024036 * diff_21h +
-                                          0.0938310236036926 * diff_5mo +
-                                          0.152317762763714 * (wkday == 'Monday') +
-                                          0.312356993431681 * (wkday == 'Saturday') +
-                                          0.323550415257237 * (wkday == 'Sunday') +
-                                          0.0979982073199806 * (wkday == 'Thursday') +
-                                          0.265313809910303 * (wkday == 'Tuesday') +
-                                          0.316247648362565 * (wkday == 'Wednesday'))))) %>%
+    p_on_time <- 1 /
+      (1 + exp(-(-0.868973986936626 +
+                   0.132485588024036 * abs(input$hr + (input$min + 0.5) / 60 - 21.45) +
+                   0.0938310236036926 * abs(month(ymd(input$fly_date)) + (day(ymd(input$fly_date)) - 0.5) /
+                                              (days_in_month(ymd(input$fly_date))) - 5.31) +
+                   0.152317762763714 * (weekdays(ymd(input$fly_date)) == 'Monday') +
+                   0.312356993431681 * (weekdays(ymd(input$fly_date)) == 'Saturday') +
+                   0.323550415257237 * (weekdays(ymd(input$fly_date)) == 'Sunday') +
+                   0.0979982073199806 * (weekdays(ymd(input$fly_date)) == 'Thursday') +
+                   0.265313809910303 * (weekdays(ymd(input$fly_date)) == 'Tuesday') +
+                   0.316247648362565 * (weekdays(ymd(input$fly_date)) == 'Wednesday'))))
+    
+    is_delayed <- runif(10000) > p_on_time
+    
+    my_pred %>%
       ggplot() +
-      geom_point(aes(x = p_on_time, y = pred_delay)) +
-      ggtitle('m')
-
-
+      geom_histogram(mapping = aes(my_pred$pred_delay, color = is_delayed), bins = 50) +
+      ggtitle(paste('Chance of on-time departure is',round(100*p_on_time),'percent'),
+              paste('But if there is a delay it will be around',round(mdn_pred),'minutes')) +
+      theme_fivethirtyeight() +
+      scale_color_fivethirtyeight()
     
     
         # plot(x = rep(round(input$hr * 100 +input$min, 1), 3),
