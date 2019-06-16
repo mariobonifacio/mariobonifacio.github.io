@@ -7,13 +7,32 @@ output: html_notebook
 ```{r setup}
 knitr::opts_chunk$set(message = FALSE)
 library(tidyverse); library(lubridate); library(ggalluvial); library(ggthemes); library(nycflights13); library(moments)
+
+
 ```
 
 
 ```{r, echo=FALSE, message=FALSE}
 ## Load csv files from mariobonifacio.github.io
-flights_17 <- read_csv2(file = 'flights_17.csv', na = 'NULL', trim_ws = T)
+fly <- (read_csv(file = 'flights_17.csv', na = 'NULL', trim_ws = T) %>%
+  select(dep_delay, carrier, flight, tailnum, origin, dest, air_time, time_hour))
+
+write_rds(x = 
+left_join(x = fly,
+          y = (weather %>%
+                 select(-(2:5)))) %>%
+  left_join(y = (planes %>%
+                   select(tailnum, plane_yr = year, type, manufacturer, model, engines, seats, speed, engine))),
+path = 'fly_wide_17.rds'
+)  
+  
+
+
+
 # airlines_17 <- read_csv(file = 'airlines_17.csv', trim_ws = T)
+
+
+
 # airports_17 <- read_csv(file = 'airports_17.csv', trim_ws = T, col_names = c('airport_name', 'airport_iata', 'airport_st'))
 ```
 
