@@ -1,0 +1,28 @@
+---
+title: "Examples of data governance and business intelligence"
+author: "Mario Bonifacio"
+output: html_notebook
+---
+
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+library(tidyverse) # Load needed packages
+library(lubridate); library(ggalluvial); library(ggdark)
+```
+
+
+```{r}
+# loads income statement
+ua_inc <- read_csv('ua_income_statement.csv') # source: Yahoo finance
+```
+
+```{r}
+
+```
+
+
+# Introduction
+
+
+
