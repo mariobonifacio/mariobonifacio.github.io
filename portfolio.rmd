@@ -18,7 +18,10 @@ ua_inc <- read_csv('ua_income_statement.csv') # source: Yahoo finance
 ```
 
 ```{r}
-
+ggplot(data = ua_inc) +
+  geom_line(mapping = aes(x = year, y = total_rev, color = 'rev')) +
+  geom_line(mapping = aes(x = year, y = expense_total_operating, color = 'oper_expense')) +
+  geom_line(mapping = aes(x = year, y = profit_operating, color = 'oper_profit'))
 ```
 
 
