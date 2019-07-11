@@ -108,25 +108,6 @@ test_17 %>%
 ```
 
 
-```{r}
-test_17 %>%
-  filter(carrier %in% c("AA", "B6", "DL", "UA") &
-           !is.na(ln_delay)) %>%
-  group_by(carrier) %>%
-  summarize(mdn_delay = median(dep_delay, na.rm = T),
-            mean_ot = mean(on_time))
-
-# bubble chart
-test_17 %>%
-  filter(carrier %in% c('B6', 'AA', 'DL', 'UA')) %>%
-  mutate(round_ln_delay = round(ln_delay, 1)) %>%
-  group_by(round_ln_delay, hour) %>%
-  mutate(mean_on_time = mean(on_time)) %>%
-  ungroup() %>%
-  ggplot(mapping = aes(x = round_ln_delay, y = hour)) +
-  geom_jitter(mapping = aes(color = carrier, size = mean_on_time)) + 
-  geom_smooth(mapping = aes(color = carrier), method = "lm", se = F)
-```
 
 ```{r}
 test_17 %>%
@@ -152,7 +133,6 @@ test_17 %>%
 ```
 
 ```{r}
-library(ggalt)
 
 test_17 %>%
   filter(carrier %in% c('AA', 'B6', 'DL', 'UA') &
@@ -173,10 +153,6 @@ test_17 %>%
   scale_x_continuous(label = minutes) +
   theme_excel_new() +
   theme(plot.title = element_text(face = "bold"),
-              # plot.background=element_rect(fill="#f7f7f7"),
-              # panel.background=element_rect(fill="#f7f7f7"),
-              # panel.grid.minor=element_blank(),
-              # panel.grid.major.y=element_blank(),
               panel.grid.major.x=element_line(),
               axis.ticks=element_blank(),
               panel.border=element_blank())
@@ -333,16 +309,15 @@ cor_df %>%
 ## reason is that the change from 23:59 to 00:00 is the biggest numerically
 ## but doesn't mean much in practice
 
-test_17 %>%
-  select(diff_21h,time_metric, q90_time) %>%
+pred_17 %>%
+  select(diff_21h, time_metric, pred_delay) %>%
   unique() %>%
   ggplot() +
-  geom_point(mapping = aes(time_metric, q90_time, color = 'time'), size = 1) +
-  geom_smooth(aes(time_metric, q90_time, color = 'time'), method = 'loess') +
-  geom_point(mapping = aes(diff_21h, q90_time, color = 'adj_time'), size = 1) +
-  geom_smooth(aes(diff_21h, q90_time, color = 'adj_time'), method = 'loess') +
-  theme_fivethirtyeight() +
-  scale_color_fivethirtyeight()
+  geom_point(mapping = aes(time_metric, p_on_time, color = 'time'), size = 1) +
+  geom_smooth(aes(time_metric, p_on_time, color = 'time'), method = 'loess') +
+  geom_point(mapping = aes(diff_21h, p_on_time, color = 'adj_time'), size = 1) +
+  geom_smooth(aes(diff_21h, p_on_time, color = 'adj_time'), method = 'loess') +
+  theme_bw()
 ```
 
 
