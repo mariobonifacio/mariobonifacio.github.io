@@ -1,68 +1,149 @@
 ---
-title: "R Notebook"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
+    toc: true
+    toc_depth: 2
 ---
 
 
 ```{r setup}
-knitr::opts_chunk$set(message = FALSE)
-library(tidyverse); library(lubridate); library(ggalluvial); library(ggthemes); library(moments); library(ggcorrplot)
+library(tidyverse); library(lubridate); library(ggalluvial); library(ggthemes); library(moments); library(ggcorrplot); library(scales); library(knitr)
 
-
+opts_chunk$set(message = FALSE, warning = FALSE)
 ```
 
 
-```{r, echo=FALSE, message=FALSE}
+# Introduction
 
+To demonstrate use of business intelligence tools, complete a fictitious business case using tables, graphs, dashboards, or programs, as applicable
 
-  
-  
+# Prompt
 
+JetBlue Airways Corporation is a New York-based air carrier which received revenue of $7.7 billion in 2018. However, in recent years, JetBlue has seen its operating income decrease as its operating expenses have increased.
 
+Determine whether JetBlue's competitors have experienced similar effects using the excerpts of income statements below.
 
-# airlines_17 <- read_csv(file = 'airlines_17.csv', trim_ws = T)
+The COO suspects the increased expenses are related to compensation passengers may receive when a flight is delayed. To start, she wishes to better understand delays at the carrier's New York hub.
 
-
-
-# airports_17 <- read_csv(file = 'airports_17.csv', trim_ws = T, col_names = c('airport_name', 'airport_iata', 'airport_st'))
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+air_fin_raw <- read_csv('air_fin_raw.csv')
+air_fin_raw
 ```
+
+# Analysis
+
+## Comparing JetBlue operations cost growth to competitors
+
+Combine the income statements, gather the dates, and add calculated columns for operations cost and operations income growth. In the column labeled, "expense_growth," JetBlue's growth is as large or greater than that of all of its competitors across every year.
 
 
 ```{r}
-## This converts hmm or c(h, mm) to a metric value h.hh
-metric_time <- function(horhm, mm = rep(-1, length(horhm))){
-  if(mm < 0){ return(trunc(horhm/100) + (horhm/100 - trunc(horhm/100)) * 5 / 3) }
-  else{ return(horhm + mm/60) }
-}
+# Loading 
+
+air_fin_raw %>%
+  gather(-(1:2), key = "date", value = "amt_1000usd") %>%
+  spread(key = 2, value = 4) %>%
+  select(1:2, operations_expenses = 4) %>%
+  mutate(date = year(mdy(date)),
+         expense_growth = round(if_else(company == lag(company), (operations_expenses - lag(operations_expenses)) / lag(operations_expenses), NULL), 2)) %>%
+  filter(!is.na(expense_growth))
+
 
 ```
+
+This can be shown even more clearly in a graph
+
+```{r}
+air_fin_raw %>%
+  gather(-(1:2), key = "date", value = "amt_1000usd") %>%
+  spread(key = 2, value = 4) %>%
+  select(1:2, opn_exp = 4, opn_inc = 3) %>%
+  mutate(date = mdy(date),
+         exp_growth = if_else(company == lag(company), (opn_exp - lag(opn_exp)) / lag(opn_exp), NULL)) %>%
+  filter(!is.na(exp_growth)) %>%
+  ggplot() +
+  geom_col(mapping = aes(x = year(date), y = exp_growth, fill = date, alpha = (company == 'JBLU')), color = "black") +
+  facet_wrap(facets = ~company, nrow = 1) +
+  theme_excel_new() +
+  theme(legend.position = "none") +
+  labs(title = 'Each airline has experienced cost growth but none more than JetBlue',
+       caption = 'Annual operations expense growth per year in percent') +
+  scale_y_continuous(labels = percent_format(accuracy = 1)) +
+  scale_alpha_discrete(range = c(0.4, 1))
+```
+
+We may thus conclude that JetBlue's operational expenses are outpacing its competitors.
+
+## Explore JetBlue's flight delays
+
+The COO also asked us to explore flight delays among JetBlue and its competitors
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# Load and store raw data set
+flights <- read_csv(file = 'flights_wide.csv', trim_ws = T)
+```
+
 
 
 ```{r}
-## Make metric month function
-metric_month <- function(mo, mo_day){ return(mo + (mo_day - 0.5) / max(mo_day)) }
-```
-
-
-
-```{r, message=FALSE, warning=FALSE}
-## build a test set 
-
+# Copy to a test set and mutate it into something testable
 test_17 <- flights %>%
   filter(!is.na(dep_delay)) %>% ## Remove flights that are missing dep_delay
+  mutate(month = month(time_hour),
+         day = day(time_hour)) %>%
   group_by(month) %>%
   mutate(on_time = dep_delay <= 1, ## This and the next line split the data set into on-time flights...
          ln_delay = if_else(dep_delay > 1, log(dep_delay), NA_real_), ## ...and log-length of delay, if delay
-         diff_5mo = abs(5.31 - month), 
-         wkday = weekdays(time_hour),
-         month_metric = metric_month(month, day),  ## Using my function
-         time_metric = metric_time(sched_dep_time), ## Using my function
-         diff_21h = abs(21.45 - time_metric)) %>%
-  ungroup() %>%
-  select(-(1:5), -(7:9), -(11:12), -(hour:minute)) %>%
-  left_join(weather, by = c('time_hour', 'origin'))
-
+         wkday = weekdays(time_hour)) %>%
+  ungroup()
 ```
+
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+# test correlations for time of year
+corr_list <- tibble(x = 50, ontime_cor = 0.00, lndelay_cor = 0.00)
+
+for(i in 50:300) {
+  corr_list[[i, 1]] <- i
+  corr_list[[i, 2]] <- round(cor(abs(yday(test_17$time_hour) - i), test_17$on_time, use = 'pairwise.complete.obs'), 4)
+  corr_list[[i, 3]] <- round(cor(abs(yday(test_17$time_hour) - i), test_17$ln_delay, use = 'pairwise.complete.obs'), 4)
+}
+
+corr_list %>%
+  mutate(avg = abs(ontime_cor * lndelay_cor),
+         monthish = mdy(paste(floor(x / 365 * 12), x / 365 * 12 - floor(x / 365 * 12), 2017))) %>%
+  arrange(desc(abs(ontime_cor))) %>%
+  head()
+
+## On-time correlation peaks at day 121
+## ln delay correlation peaks at day 168
+  
+```
+
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+# test correlations for time of day
+corr_list <- tibble(x = 50, ontime_cor = 0.00, lndelay_cor = 0.00)
+
+for(i in 50:300) {
+  corr_list[[i, 1]] <- i
+  corr_list[[i, 2]] <- round(cor(abs(yday(test_17$time_hour) - i), test_17$on_time, use = 'pairwise.complete.obs'), 4)
+  corr_list[[i, 3]] <- round(cor(abs(yday(test_17$time_hour) - i), test_17$ln_delay, use = 'pairwise.complete.obs'), 4)
+}
+
+corr_list %>%
+  mutate(avg = abs(ontime_cor * lndelay_cor),
+         monthish = mdy(paste(floor(x / 365 * 12), x / 365 * 12 - floor(x / 365 * 12), 2017))) %>%
+  arrange(desc(abs(ontime_cor))) %>%
+  head()
+
+## On-time correlation peaks at day 121
+## ln delay correlation peaks at day 168
+  
+```
+
+
 
 
 ```{r}
@@ -309,15 +390,15 @@ cor_df %>%
 ## reason is that the change from 23:59 to 00:00 is the biggest numerically
 ## but doesn't mean much in practice
 
-pred_17 %>%
-  select(diff_21h, time_metric, pred_delay) %>%
-  unique() %>%
-  ggplot() +
-  geom_point(mapping = aes(time_metric, p_on_time, color = 'time'), size = 1) +
-  geom_smooth(aes(time_metric, p_on_time, color = 'time'), method = 'loess') +
-  geom_point(mapping = aes(diff_21h, p_on_time, color = 'adj_time'), size = 1) +
-  geom_smooth(aes(diff_21h, p_on_time, color = 'adj_time'), method = 'loess') +
-  theme_bw()
+# pred_17 %>%
+#   select(diff_21h, time_metric, pred_delay) %>%
+#   unique() %>%
+#   ggplot() +
+#   geom_point(mapping = aes(time_metric, p_on_time, color = 'time'), size = 1) +
+#   geom_smooth(aes(time_metric, p_on_time, color = 'time'), method = 'loess') +
+#   geom_point(mapping = aes(diff_21h, p_on_time, color = 'adj_time'), size = 1) +
+#   geom_smooth(aes(diff_21h, p_on_time, color = 'adj_time'), method = 'loess') +
+#   theme_bw()
 ```
 
 
@@ -359,25 +440,13 @@ flights_wide <- flights %>%
          cost = 15 * distance + (dep_delay > 0) * seats * dep_delay)
 
 getwd()
-write_csv(flights_wide, path = 'C:/Users/Mario/Downloads/flights_wide.csv')
+# write_csv(flights_wide, path = 'C:/Users/Mario/Downloads/flights_wide.csv')
 ```
 
 
 ```{r}
-air_fin <- read_csv('air_fin.csv',na = '', col_names = c('carrier', 'year', 'opn_exp', 'opn_inc', 'exp_growth', 'inc_growth'), skip = 1)
 
-air_fin[13:16,1] <- 'United'
 
-air_fin %>%
-  filter(!is.na(exp_growth)) %>%
-  ggplot() +
-  geom_col(mapping = aes(x = year, y = exp_growth, fill = year)) +
-  facet_wrap(facets = ~carrier, nrow = 1) +
-  theme_excel_new() +
-  theme(legend.position = "none") +
-  ggtitle('Each airline has experienced cost growth but none more than JetBlue')
-
-airports
   
 ```
 
