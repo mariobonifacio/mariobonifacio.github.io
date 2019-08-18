@@ -81,14 +81,25 @@ The COO also asked us to explore flight delays among JetBlue and its competitors
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 # Load and store raw data set
-flights <- read_csv(file = 'flights_wide.csv', trim_ws = T)
+fly_wide <- read_csv(file = 'flights_wide.csv', trim_ws = T) %>%
+  mutate(temp = as.double(temp),
+         dewp = as.double(dewp),
+         humid = as.double(humid),
+         pressure = as.double(pressure)) %>%
+  group_by(lat, lon) %>%
+  summar
+  ggplot(aes(lon, lat, color = dep_delay)) +
+  geom_point() +
+  geom_jitter(width = 2, height = 2)
+
+  
 ```
 
 
 
 ```{r}
 # Copy to a test set and mutate it into something testable
-test_17 <- flights %>%
+test_17 <- fly_wide %>%
   filter(!is.na(dep_delay)) %>% ## Remove flights that are missing dep_delay
   mutate(month = month(time_hour),
          day = day(time_hour)) %>%
@@ -124,25 +135,95 @@ corr_list %>%
 
 ```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 # test correlations for time of day
-corr_list <- tibble(x = 50, ontime_cor = 0.00, lndelay_cor = 0.00)
 
-for(i in 50:300) {
-  corr_list[[i, 1]] <- i
-  corr_list[[i, 2]] <- round(cor(abs(yday(test_17$time_hour) - i), test_17$on_time, use = 'pairwise.complete.obs'), 4)
-  corr_list[[i, 3]] <- round(cor(abs(yday(test_17$time_hour) - i), test_17$ln_delay, use = 'pairwise.complete.obs'), 4)
+
+corr_list <- tibble(x = 100, ontime_cor = 0.00, lndelay_cor = 0.00)
+
+for(i in 1:23) {
+  for(j in 0:59) {
+    
+  corr_list[[i * 100 + j, 1]] <- i*100 + j
+  corr_list[[i * 100 + j, 2]] <- round(cor(
+    abs(interval
+        (start = ymd_hm(
+          paste(
+            2017,
+            month(test_17$time_hour),
+            day(test_17$time_hour),
+            i,
+            j)),
+          end = ymd_hm(
+            paste(
+              2017,
+              month(test_17$time_hour),
+              day(test_17$time_hour),
+              hour(test_17$time_hour),
+              test_17$minute)) /
+            dminutes(1)),
+    test_17$on_time,
+    use = 'pairwise.complete.obs'), 4))
+  
+  corr_list[[i * 100 + j, 3]] <- round(cor(
+    abs(interval(start = ymd_hm(paste(2017,
+                      month(test_17$time_hour),
+                      day(test_17$time_hour),
+                      i,
+                      j)),
+         end = ymd_hm(paste(2017,
+                      month(test_17$time_hour),
+                      day(test_17$time_hour),
+                      hour(test_17$time_hour),
+                      test_17$minute)) / dminutes(1)),
+    test_17$ln_delay,
+    use = 'pairwise.complete.obs'), 4))
+  
+  }
 }
 
 corr_list %>%
-  mutate(avg = abs(ontime_cor * lndelay_cor),
-         monthish = mdy(paste(floor(x / 365 * 12), x / 365 * 12 - floor(x / 365 * 12), 2017))) %>%
-  arrange(desc(abs(ontime_cor))) %>%
+  arrange(desc(abs(lndelay_cor))) %>%
   head()
 
-## On-time correlation peaks at day 121
-## ln delay correlation peaks at day 168
+## On-time correlation peaks at time 20:19
+## ln delay correlation peaks at time 20:29
   
 ```
 
+```{r}
+# Add both pairs to data frame
+test_17 <- test_17 %>%
+  mutate(diff_121day = abs(yday(time_hour) - 121),
+         diff_168day = abs(yday(time_hour) - 168),
+         diff_2019min = interval(start = ymd_hm(paste(2017,
+                      month(time_hour),
+                      day(time_hour),
+                      20,
+                      19)),
+         end = ymd_hm(paste(2017,
+                      month(time_hour),
+                      day(time_hour),
+                      hour(time_hour),
+                      minute))) / dminutes(1),
+         diff_2029min = interval(start = ymd_hm(paste(2017,
+                      month(time_hour),
+                      day(time_hour),
+                      20,
+                      29)),
+         end = ymd_hm(paste(2017,
+                      month(time_hour),
+                      day(time_hour),
+                      hour(time_hour),
+                      minute))) / dminutes(1))
+
+
+
+%>%
+  glm(formula = on_time ~ diff_121day + diff_2029min + wkday, family = binomial) %>%
+  summary()
+  
+
+
+```
 
 
 
@@ -152,8 +233,9 @@ test_17 %>%
   filter(carrier == 'B6') %>%
   select(on_time:ln_delay,
          air_time:distance,
-         month_metric:time_metric,
-         temp:visib) %>%
+         temp:year,
+         engines:speed,
+         diff_121day:diff_2029min) %>%
   cor(use = "pairwise.complete.obs") %>%
   round(1) %>%
   ggcorrplot(lab = TRUE,
@@ -161,7 +243,8 @@ test_17 %>%
              type = "lower",
              lab_size = 3,
              colors = c("orange", "white", "dodgerblue"), 
-             title="Correlogram of flight and weather data", 
+             title="Correlogram of flight and weather data",
+             legend = 'Correlation',
              ggtheme = theme_bw())
   
     
@@ -175,8 +258,9 @@ test_17 %>%
 ```{r}
 
 test_17 %>%
-  filter(carrier == 'B6', !is.na(dewp)) %>%
+  filter(carrier == 'B6' & !is.na(dewp)) %>%
   ggplot(mapping = aes(x = temp, y = dewp)) +
+  geom_point() +
   geom_smooth(method = 'lm', color = 'darkgray', fill = 'darkgray', alpha = 0.8) +
   geom_count(color = 'dodgerblue', show.legend = F, na.rm = T) +
   theme_bw() +
