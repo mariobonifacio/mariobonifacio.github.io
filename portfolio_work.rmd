@@ -8,7 +8,7 @@ output:
 
 
 ```{r setup}
-library(tidyverse); library(lubridate); library(ggalluvial); library(ggthemes); library(moments); library(ggcorrplot); library(scales); library(knitr)
+library(tidyverse); library(lubridate); library(ggalluvial); library(ggthemes); library(moments); library(ggcorrplot); library(scales); library(knitr); library(ggalt)
 
 opts_chunk$set(message = FALSE, warning = FALSE)
 ```
@@ -81,23 +81,47 @@ The COO also asked us to explore flight delays among JetBlue and its competitors
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 # Load and store raw data set
-fly_wide <- read_csv(file = 'flights_wide.csv', trim_ws = T) %>%
-  mutate(temp = as.double(temp),
-         dewp = as.double(dewp),
-         humid = as.double(humid),
-         pressure = as.double(pressure)) %>%
-  group_by(lat, lon) %>%
-  summar
-  ggplot(aes(lon, lat, color = dep_delay)) +
-  geom_point() +
-  geom_jitter(width = 2, height = 2)
+
+# flights_17 %>%
+#   group_by(carrier) %>%
+#   summarize(num_flights = n()) %>%
+#   arrange(desc(num_flights))
+# 
+# flights_wide <- flights %>%
+#   select(-(1:3),-hour) %>%
+#   left_join(weather, by = c("time_hour", "origin")) %>%
+#   select(-(year:hour)) %>%
+#   left_join(planes, by = 'tailnum') %>%
+#   left_join(airports, by = c('dest' = 'faa')) %>%
+#   filter(!is.na(seats) &
+#            !is.na(dep_delay)) %>%
+#   mutate(price = seats * 200,
+#          cost = 15 * distance + (dep_delay > 0) * seats * dep_delay)
+
+    # col_logical() [l], containing only T, F, TRUE or FALSE.
+    # col_integer() [i], integers.
+    # col_double() [d], doubles.
+    # col_character() [c], everything else.
+    # col_factor(levels, ordered) [f], a fixed set of values.
+    # col_date(format = "") [D]: with the locale's date_format.
+    # col_time(format = "") [t]: with the locale's time_format.
+    # col_datetime(format = "") [T]: ISO8601 date times
+    # col_number() [n], numbers containing the grouping_mark
+    # col_skip() [_, -], don't import this column.
+    # col_guess() [?], parse using the "best" type based on the input.
+# iiiii icicc
+# ciiiT dddid
+# ddddi cccii
+# dccdd iicci i
+
+fly_wide <- read_csv(file = 'flights_wide.csv', trim_ws = T, col_types = 'iiiiiiciccciiiTdddidddddiccciidccddiiccii')
 
   
 ```
 
 
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 # Copy to a test set and mutate it into something testable
 test_17 <- fly_wide %>%
   filter(!is.na(dep_delay)) %>% ## Remove flights that are missing dep_delay
@@ -108,6 +132,8 @@ test_17 <- fly_wide %>%
          ln_delay = if_else(dep_delay > 1, log(dep_delay), NA_real_), ## ...and log-length of delay, if delay
          wkday = weekdays(time_hour)) %>%
   ungroup()
+
+
 ```
 
 
@@ -122,8 +148,7 @@ for(i in 50:300) {
 }
 
 corr_list %>%
-  mutate(avg = abs(ontime_cor * lndelay_cor),
-         monthish = mdy(paste(floor(x / 365 * 12), x / 365 * 12 - floor(x / 365 * 12), 2017))) %>%
+  mutate(avg = abs(ontime_cor * lndelay_cor)) %>%
   arrange(desc(abs(ontime_cor))) %>%
   head()
 
@@ -143,39 +168,46 @@ for(i in 1:23) {
   for(j in 0:59) {
     
   corr_list[[i * 100 + j, 1]] <- i*100 + j
-  corr_list[[i * 100 + j, 2]] <- round(cor(
-    abs(interval
-        (start = ymd_hm(
-          paste(
-            2017,
-            month(test_17$time_hour),
-            day(test_17$time_hour),
-            i,
-            j)),
-          end = ymd_hm(
+  corr_list[[i * 100 + j, 2]] <- round(
+    cor(
+      abs(interval
+          (start = ymd_hm(
             paste(
               2017,
               month(test_17$time_hour),
               day(test_17$time_hour),
-              hour(test_17$time_hour),
-              test_17$minute)) /
+              i,
+              j)),
+            end = ymd_hm(
+              paste(
+                2017,
+                month(test_17$time_hour),
+                day(test_17$time_hour),
+                hour(test_17$time_hour),
+              test_17$minute))) /
             dminutes(1)),
     test_17$on_time,
-    use = 'pairwise.complete.obs'), 4))
+    use = 'pairwise.complete.obs'), 4)
+
   
-  corr_list[[i * 100 + j, 3]] <- round(cor(
-    abs(interval(start = ymd_hm(paste(2017,
-                      month(test_17$time_hour),
-                      day(test_17$time_hour),
-                      i,
-                      j)),
-         end = ymd_hm(paste(2017,
-                      month(test_17$time_hour),
-                      day(test_17$time_hour),
-                      hour(test_17$time_hour),
-                      test_17$minute)) / dminutes(1)),
+    
+  corr_list[[i * 100 + j, 3]] <- round(
+    cor(
+      abs(
+        interval(
+          start = ymd_hm(paste(2017,
+                               month(test_17$time_hour),
+                               day(test_17$time_hour),
+                               i,
+                               j)),
+          end = ymd_hm(paste(2017,
+                             month(test_17$time_hour),
+                             day(test_17$time_hour),
+                             hour(test_17$time_hour),
+                             test_17$minute))) /
+          dminutes(1)),
     test_17$ln_delay,
-    use = 'pairwise.complete.obs'), 4))
+    use = 'pairwise.complete.obs'), 4)
   
   }
 }
@@ -189,9 +221,11 @@ corr_list %>%
   
 ```
 
+
+
 ```{r}
-# Add both pairs to data frame
-test_17 <- test_17 %>%
+# Add transformed time and date data to the test set
+testb_17 <- test_17 %>%
   mutate(diff_121day = abs(yday(time_hour) - 121),
          diff_168day = abs(yday(time_hour) - 168),
          diff_2019min = interval(start = ymd_hm(paste(2017,
@@ -217,19 +251,57 @@ test_17 <- test_17 %>%
 
 
 
-%>%
-  glm(formula = on_time ~ diff_121day + diff_2029min + wkday, family = binomial) %>%
-  summary()
+
   
 
 
 ```
 
+Before continuing, I want to explain and justify why I used this method rather than using unchanged time or date.
+
+The biggest change in time would be between 00:00 and 23:59. The biggest schange in date would be between 1 January and 31 December. 
+
+```{r, message=FALSE}
+testb_17 %>%
+  mutate(hour = hour(time_hour)) %>%
+  group_by(hour, minute) %>%
+  summarize(mean_ontime = mean(on_time, na.rm = T),
+            mean_lndelay = mean(ln_delay, na.rm = T)) %>%
+  ggplot(mapping = aes(x = hour + minute/60, y = mean_ontime)) +
+  geom_point() +
+  geom_smooth()
+
+testb_17 %>%
+  mutate(hour = hour(time_hour)) %>%
+  group_by(hour, minute) %>%
+  summarize(mean_ontime = mean(on_time, na.rm = T),
+            mean_lndelay = mean(ln_delay, na.rm = T)) %>%
+  ggplot(mapping = aes(x = hour + minute/60, y = mean_lndelay)) +
+  geom_point() +
+  geom_smooth()
+
+
+
+## With this plot, I wanted to show why I chose to use a difference factor
+## rather than just using the time of day variable. Intuitively, the
+## reason is that the change from 23:59 to 00:00 is the biggest numerically
+## but doesn't mean much in practice
+
+# pred_17 %>%
+#   select(diff_21h, time_metric, pred_delay) %>%
+#   unique() %>%
+#   ggplot() +
+#   geom_point(mapping = aes(time_metric, p_on_time, color = 'time'), size = 1) +
+#   geom_smooth(aes(time_metric, p_on_time, color = 'time'), method = 'loess') +
+#   geom_point(mapping = aes(diff_21h, p_on_time, color = 'adj_time'), size = 1) +
+#   geom_smooth(aes(diff_21h, p_on_time, color = 'adj_time'), method = 'loess') +
+#   theme_bw()
+```
 
 
 ```{r}
 ## Build a correlogram
-test_17 %>%
+testb_17 %>%
   filter(carrier == 'B6') %>%
   select(on_time:ln_delay,
          air_time:distance,
@@ -257,11 +329,11 @@ test_17 %>%
 
 ```{r}
 
-test_17 %>%
-  filter(carrier == 'B6' & !is.na(dewp)) %>%
-  ggplot(mapping = aes(x = temp, y = dewp)) +
+testb_17 %>%
+  filter(!is.na(temp) & !is.na(dewp)) %>%
+  ggplot(mapping = aes(x = temp, y = dewp, na.rm = T)) +
   geom_point() +
-  geom_smooth(method = 'lm', color = 'darkgray', fill = 'darkgray', alpha = 0.8) +
+  geom_smooth(method = 'lm', color = 'darkgray', fill = 'darkgray', alpha = 0.8, linetype = 'dashed') +
   geom_count(color = 'dodgerblue', show.legend = F, na.rm = T) +
   theme_bw() +
   labs(title = "The correlation between temperature and dewpoint makes using both redundant",
@@ -275,38 +347,39 @@ test_17 %>%
 
 
 ```{r}
-test_17 %>%
-  mutate(is_b6 = (carrier == 'B6')) %>%
-  mutate(month_metric = round(month_metric, 1)) %>%
-  group_by(month_metric, is_b6) %>%
+testb_17 %>%
+  mutate(is_b6 = (carrier == 'B6'),
+         yrmo = 12 / 365 * yday(time_hour)) %>%
+  group_by(yrmo, is_b6) %>%
   summarize(mean_on_time = mean(on_time)) %>%
-  group_by(month_metric) %>%
-  mutate(b6_v_others = if_else(2 * is_b6 == 2,
+  group_by(yrmo) %>%
+  mutate(b6_v_others = if_else(is_b6 == T,
                                  mean_on_time - mean(mean_on_time),
                                  mean(mean_on_time) - mean_on_time)) %>%
   summarize(b6_factor = sum(b6_v_others)) %>%
-  ggplot(mapping = aes(x = month_metric - 0.5, ymax = b6_factor, ymin = 0)) +
+  ggplot(mapping = aes(x = yrmo, ymax = b6_factor, ymin = 0)) +
   geom_ribbon(fill = 'dodgerblue') +
+  geom_smooth()
   scale_x_continuous(labels = month.abb[1:12], breaks = 1:12) +
   theme_bw() +
   labs(title = 'JetBlue lags in on-time departures all year but especially in summer months',
        x = 'date',
-       y = 'on-time departures vs competitors')
+       y = 'Percent diff. in JetBlue on-time departures vs. competitors')
 
   
   
 ```
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 
-test_17 %>%
+testb_17 %>%
   filter(carrier %in% c('AA', 'B6', 'DL', 'UA') &
            !is.na(ln_delay)) %>%
   group_by(carrier) %>%
   summarize(q1 = quantile(dep_delay, 0.25),
             q3 = quantile(dep_delay, 0.75)) %>%
   ggplot(mapping = aes(x = q1, xend = q3, y = carrier)) +
-  geom_dumbbell(colour_x = "dodgerblue",
+  geom_dumbbell(color_x = "dodgerblue",
                 size = 2,
                 size_x = 4,
                 size_xend = 4,
@@ -327,9 +400,9 @@ test_17 %>%
 
 
 ```{r}
-test_17 %>%
-  filter(month_metric > 6 &
-           month_metric < 9) %>%
+testb_17 %>%
+    filter(yday(time_hour) > 152 & 
+           yday(time_hour) < 244) %>%
   mutate(is_b6 = (carrier == "B6")) %>%
   ggplot(mapping = aes(x = ln_delay)) +
   geom_density(aes(fill = is_b6), alpha=0.7, na.rm = T) +
@@ -344,13 +417,13 @@ test_17 %>%
 
 ```
 
-
+To build a predictive model, we'll need two estimated 
 
 ```{r}
 ## Build Linear model using month, time, and weekday data
-mdl <- lm(data = test_17, formula = ln_delay ~ diff_21h + diff_5mo + wkday) %>%
+mdl <- lm(data = testb_17, formula = ln_delay ~ diff_2029min + diff_168day + wkday) %>%
   summary()
-
+mdl
 ```
 
 
@@ -361,14 +434,15 @@ coefs <- mdl$coefficients %>%
   as_tibble() %>%
   mutate(x_var = row.names(mdl$coefficients)) %>%
   select(5, coef = 1, se = 2)
+coefs
 ```
 
 
 ```{r}
 ## This builds the pred_delay equation
 paste(coefs[1, 2], "+",
-      coefs[2, 2], "* diff_21h +",
-      coefs[3, 2], "* diff_5mo +",
+      coefs[2, 2], "* diff_2029min +",
+      coefs[3, 2], "* diff_168day +",
       coefs[4, 2], "* (wkday == 'Monday') +",
       coefs[5, 2], "* (wkday == 'Saturday') +",
       coefs[6, 2], "* (wkday == 'Sunday') +",
@@ -380,7 +454,7 @@ paste(coefs[1, 2], "+",
 
 ```{r}
 ## Build logit model using month, time, and weekday data
-mdl_2 <- glm(data = test_17, formula = on_time ~ diff_21h + diff_5mo + wkday, family = 'binomial') %>%
+mdl_2 <- glm(data = testb_17, formula = on_time ~ diff_2019min + diff_121day + wkday, family = 'binomial') %>%
   summary()
 
 mdl_2
@@ -399,8 +473,8 @@ coefs_2 <- mdl_2$coefficients %>%
 ```{r}
 ## This builds the logit for p_on_time
 paste(coefs_2[1, 2], "+",
-      coefs_2[2, 2], "* diff_21h +",
-      coefs_2[3, 2], "* diff_5mo +",
+      coefs_2[2, 2], "* diff_2019min +",
+      coefs_2[3, 2], "* diff_121day +",
       coefs_2[4, 2], "* (wkday == 'Monday') +",
       coefs_2[5, 2], "* (wkday == 'Saturday') +",
       coefs_2[6, 2], "* (wkday == 'Sunday') +",
@@ -468,22 +542,7 @@ cor_df %>%
 ```
 
 
-```{r, message=FALSE}
-## With this plot, I wanted to show why I chose to use a difference factor
-## rather than just using the time of day variable. Intuitively, the
-## reason is that the change from 23:59 to 00:00 is the biggest numerically
-## but doesn't mean much in practice
 
-# pred_17 %>%
-#   select(diff_21h, time_metric, pred_delay) %>%
-#   unique() %>%
-#   ggplot() +
-#   geom_point(mapping = aes(time_metric, p_on_time, color = 'time'), size = 1) +
-#   geom_smooth(aes(time_metric, p_on_time, color = 'time'), method = 'loess') +
-#   geom_point(mapping = aes(diff_21h, p_on_time, color = 'adj_time'), size = 1) +
-#   geom_smooth(aes(diff_21h, p_on_time, color = 'adj_time'), method = 'loess') +
-#   theme_bw()
-```
 
 
 ```{r}
@@ -493,39 +552,21 @@ mean(test_17$ln_delay, na.rm = T)
 median(test_17$ln_delay, na.rm = T)
 
 
+
 ggplot(data = test_17, mapping = aes(ln_delay), fill = 'gray') +
-  geom_density(na.rm = T) +
-  geom_vline(xintercept = mean(test_17$ln_delay, na.rm = T), color = 'orange', size = 1.5) +
-  geom_vline(xintercept = median(test_17$ln_delay, na.rm = T), color = 'dodgerblue', size = 1.5) +
+  geom_histogram(na.rm = T, bins = 20) +
+  geom_vline(xintercept = quantile(test_17$ln_delay, probs = 0.16, na.rm = T), color = 'darkorange', size = 1.5, linetype = 'dotted') +
+  geom_vline(xintercept = quantile(test_17$ln_delay, probs = 0.84, na.rm = T), color = 'navyblue', size = 1.5, linetype = 'dotted') +
+  geom_vline(xintercept = mean(test_17$ln_delay, na.rm = T), color = 'orange', size = 1.5, linetype = 'dashed') +
+  geom_vline(xintercept = median(test_17$ln_delay, na.rm = T), color = 'dodgerblue', size = 1.5, linetype = 'dashed') +
   theme_fivethirtyeight() +
-  scale_color_fivethirtyeight(labels = c('dodgerblue', 'orange')) 
+  scale_color_fivethirtyeight(labels = c('dodgerblue', 'orange')) +
   ggtitle('Distribution looks pretty normal')
 
 kurtosis(test_17$dep_delay); skewness(test_17$dep_delay)
 ```
 
 
-```{r}
-
-flights_17 %>%
-  group_by(carrier) %>%
-  summarize(num_flights = n()) %>%
-  arrange(desc(num_flights))
-
-flights_wide <- flights %>%
-  select(-(1:3),-hour) %>%
-  left_join(weather, by = c("time_hour", "origin")) %>%
-  select(-(year:hour)) %>%
-  left_join(planes, by = 'tailnum') %>%
-  left_join(airports, by = c('dest' = 'faa')) %>%
-  filter(!is.na(seats) &
-           !is.na(dep_delay)) %>%
-  mutate(price = seats * 200,
-         cost = 15 * distance + (dep_delay > 0) * seats * dep_delay)
-
-getwd()
-# write_csv(flights_wide, path = 'C:/Users/Mario/Downloads/flights_wide.csv')
-```
 
 
 ```{r}
