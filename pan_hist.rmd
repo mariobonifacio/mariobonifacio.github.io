@@ -1,0 +1,38 @@
+---
+title: "A history of pandemics"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+options(scipen = 999)
+
+library(tidyverse)
+library(ggrepel)
+library("ggthemes")
+```
+
+
+```{r}
+panda_mics <- read_csv("pandas.csv") %>% 
+  filter(!is.na(name)) %>% 
+  mutate(deaths_pm = (signif(deaths / pop * 1000000, 3))) %>% 
+  arrange(yr)
+```
+
+```{r}
+panda_mics %>% 
+  arrange(deaths) %>%
+  ggplot(mapping = aes(y = deaths / 1000000, x = pop/1000000000)) +
+  geom_abline(intercept = 0, slope = 6, color = "gray", linetype = "dashed") +
+  geom_point(color = "white") +
+  theme_dark() +
+  geom_label_repel(box.padding = 0.15, label.padding = 0.1, label.size = .1, segment.color = "black", mapping = aes(label = paste(name, yr, sep = ", ")), ylim = c(-5, 60), xlim = c(-1, 10)) +
+  xlim(-1, 10) +
+  ylim(-5, 60) +
+  labs(x = "World population in billions", y = "Deaths in millions", caption = "Source: wapo.st/deadliest-pandemics", title = "")
+```
+
