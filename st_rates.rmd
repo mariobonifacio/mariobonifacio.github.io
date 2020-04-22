@@ -4,11 +4,8 @@ output: html_notebook
 ---
 
 Loading packages
-
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 
-libby <- "/users/teams/users/conmrob/3.5.2 library"
-.libPaths(new = libby)
 
 library(lubridate)
 library(data.table)
@@ -18,17 +15,19 @@ library(jsonlite)
 library(ggrepel)
 library(stringr)
 ```
+done
 
 
-Pulling the most recent data from covidtracking.com
+Pulling the most recent data from covidtracking.com...
 ```{r include=FALSE}
 all_data <- "https://covidtracking.com/api/v1/states/daily.json" %>%
   fromJSON() %>%
   as.data.table()
 ```
+done
 
 
-Narrowing to data to graph
+Narrowing to data to graph...
 ```{r include=FALSE}
 my_data <- all_data %>% 
   mutate(as_of = ymd(date),
@@ -45,7 +44,8 @@ my_data <- all_data %>%
   data.table()
 
 ```
-  
+done
+
 
 Using state population data
 ```{r include=FALSE}
@@ -53,6 +53,7 @@ st_pop_2019 <- read_csv("st_pop.csv") %>%
   select(name = 5, pop_2019 = 17) %>% 
   mutate(pop_2019 = as.integer(pop_2019))
 ```
+done
 
 
 Building tables
@@ -61,8 +62,6 @@ code_names <- data.table(cbind(name = state.name,
                  code = state.abb,
                  region = as.character(state.region)))
 ```
-
-
 
 ```{r include=FALSE}
 test_growth <- code_names %>% 
@@ -75,8 +74,6 @@ test_growth <- code_names %>%
             wk_ending = max(as_of)) %>% 
   arrange(desc(test_weekly_growth))
 ```
-
-
 
 ```{r include=FALSE}
 death_growth <- code_names %>% 
@@ -97,9 +94,11 @@ case_growth <- code_names %>%
   summarize(cases_weekly_growth = round((max(cases) - min(cases)) / min(cases), 2), cases_weekly_per_mil = signif(((max(cases) - min(cases)) / mean(pop_2019) * 1000000), 3), wk_ending = max(as_of)) %>% 
   arrange(desc(cases_weekly_growth))
 ```
+done
 
 
-```{r echo=FALSE}
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 test_growth %>%
   inner_join(code_names, by = "code") %>%
   inner_join(case_growth, by = "code") %>% 
@@ -117,8 +116,8 @@ test_growth %>%
   inner_join(death_growth, by = "code") %>% 
   arrange(desc(tests_weekly_per_mil)) %>% 
   # filter(tests_weekly_per_mil < quantile(test_growth$tests_weekly_per_mil, probs = 0.5)) %>% 
-  ggplot() +
-  geom_label_repel(mapping = aes(x = death_weekly_growth, y = tests_weekly_per_mil, label = code, fill = region)) +
+  ggplot(mapping = aes(x = death_weekly_growth, y = tests_weekly_per_mil, label = code, fill = region)) +
+  geom_label_repel() +
   labs(x = "Growth in weekly deaths", y = "Weekly tests per million residents", title = stringr::str_c("State tests and weekly growth in deaths for the week ending", death_growth$wk_ending[1], sep = " "))
 ```
 
@@ -171,7 +170,7 @@ case_growth %>%
 
 
 ```{r echo=FALSE}
-pk <- c("NY")
+pk <- c("OH")
 
 
 
@@ -192,7 +191,7 @@ my_data %>%
 
 
 ```{r echo=FALSE}
-pk <- c("NY")
+pk <- c("OH")
 
 my_data %>% 
   filter(code %in% pk) %>%
@@ -228,7 +227,7 @@ my_data %>%
 
 
 ```{r echo=FALSE}
-pk <- c("NY", "NJ", "WA", "CT", "CA", "MA", "OH", "FL", "LA", "IL", "MI")
+pk <- c("NY", "NJ", "MA", "MI", "LA", "CT", "DC", "RI")
 
 my_data %>% 
   filter(!(code %in% (pk))) %>% 
