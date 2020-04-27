@@ -1,0 +1,170 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Loading packages
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+
+libby <- "/users/teams/users/conmrob/3.5.2 library"
+.libPaths(new = libby)
+
+library(lubridate)
+library(tidyverse)
+library(utils)
+library(data.table)
+library(ggrepel)
+library(RColorBrewer)
+```
+
+
+Pulling the most recent data from covidtracking.com
+```{r include=FALSE}
+ecdc_data <- read.csv("https://opendata.ecdc.europa.eu/covid19/casedistribution/csv", na.strings = "", fileEncoding = "UTF-8-BOM")
+```
+
+
+Narrowing to 
+```{r include=FALSE}
+my_ecdc <- ecdc_data %>% 
+  mutate(as_of = dmy(dateRep),
+         country = as.character(countriesAndTerritories),
+         cases_pm = cases * 1000000 / popData2018,
+         deaths_pm = deaths * 1000000 / popData2018) %>% 
+  select(as_of,
+         country,
+         cases,
+         cases_pm,
+         deaths,
+         deaths_pm,
+         pop = popData2018,
+         code = countryterritoryCode)
+  
+```
+
+
+```{r}
+oecd_list <- c("AUSTRALIA", "AUSTRIA", "BELGIUM", "CANADA", "CHILE",
+"CZECH REPUBLIC", "CZECHIA", "DENMARK", "ESTONIA", "FINLAND", "FRANCE",
+"GERMANY", "GREECE", "HUNGARY", "ICELAND", "IRELAND", "ISRAEL", "ITALY",
+"JAPAN",
+"KOREA",
+"LATVIA",
+"LITHUANIA",
+"LUXEMBOURG",
+"MEXICO",
+"NETHERLANDS",
+"NEW ZEALAND",
+"NORWAY",
+"POLAND",
+"PORTUGAL",
+"SLOVAK REPUBLIC",
+"SLOVAKIA",
+"SLOVENIA",
+"SPAIN",
+"SWEDEN",
+"SWITZERLAND",
+"TURKEY",
+"UNITED KINGDOM",
+"UNITED_KINGDOM",
+"UNITED STATES",
+"UNITED STATES OF AMERICA",
+"UNITED_STATES",
+"UNITED_STATES_OF_AMERICA")
+```
+
+
+
+Building tables
+```{r include=FALSE}
+my_oecd <- my_ecdc %>% 
+  filter(toupper(country) %in% oecd_list)
+```
+
+
+
+```{r include=FALSE}
+weekly_oecd <- my_oecd %>% 
+  mutate(as_of_week = lubridate::week(as_of)) %>%
+  group_by(country,code, as_of_week) %>% 
+  summarize(weekly_deaths_pm = sum(deaths_pm),
+            weekly_deaths = sum(deaths),
+            weekly_cases_pm = sum(cases_pm),
+            weekly_cases = sum(cases),
+            mean_deaths_pm = mean(deaths_pm, na.rm = TRUE),
+            mean_deaths = mean(deaths),
+            wk_ending = max(as_of))
+```
+
+
+```{r echo=FALSE}
+weekly_oecd %>%
+  group_by(code) %>% 
+  filter(wk_ending == max(wk_ending)) %>%
+  ungroup() %>%
+  filter(weekly_deaths_pm > median(weekly_deaths_pm)) %>% 
+  arrange(desc(weekly_deaths_pm)) %>% 
+  ggplot() +
+  geom_col(mapping = aes(x = reorder(code, desc(weekly_deaths_pm)), y = weekly_deaths_pm)) +
+  labs(x = "Country code", y = "Deaths in the past week per 1 mil population", subtitle = str_c("as of", max(weekly_oecd$wk_ending), sep = " "), title = "Weekly deaths adjusted for population")
+```
+
+```{r}
+weekly_oecd %>% 
+  filter(code %in% c("CAN", "USA", "GBR")) %>% 
+  ggplot(mapping = aes(x = wk_ending, y = mean_deaths_pm, color = code)) +
+  geom_line() +
+  xlim(ymd(20200301), ymd(20200430))
+
+```
+
+
+
+```{r echo=FALSE}
+total_oecd <- my_oecd %>% 
+  group_by(country,code) %>% 
+  summarize(total_deaths_pm = sum(deaths_pm),
+            total_deaths = sum(deaths),
+            total_cases_pm = sum(cases_pm),
+            total_cases = sum(cases),
+            end_date = max(as_of))
+```
+
+
+```{r echo=FALSE}
+total_oecd %>% 
+  filter(total_deaths_pm > median(total_oecd$total_deaths_pm)) %>% 
+  arrange(desc(total_deaths_pm)) %>% 
+  ggplot() +
+  geom_col(mapping = aes(x = reorder(code, desc(total_deaths_pm)), y = total_deaths_pm)) +
+  labs(x = "Country code", y = "Deaths per 1 mil population")
+```
+
+
+```{r echo=FALSE}
+total_oecd %>%
+  mutate(cfr = signif(total_deaths / total_cases, 2)) %>% 
+  ggplot() +
+  geom_label_repel(mapping = aes(x = total_cases_pm, y = total_deaths_pm, label = str_c(code, cfr, sep = " "), color = cfr)) +
+  labs(x = "Cases per 1 mil population", y = "Deaths per 1 mil population") +
+  scale_color_gradientn(colors = c("darkgray", "red"))
+```
+
+
+
+```{r}
+labelly <- my_oecd %>% 
+  group_by(code) %>% 
+  summarize(as_of = max(as_of), label_death = max(deaths_pm))
+
+
+my_oecd %>% 
+  left_join(labelly, by = c("code", "as_of")) %>% 
+  ggplot() +
+  geom_line(mapping = aes(x = as_of, y = deaths_pm, color = country)) +
+  geom_label(aes(x = as_of, y = label_death, label = code), na.rm = TRUE) +
+  theme(legend.position = "none") +
+  xlim(ymd(20200301), as_date(Sys.time()))
+```
+
