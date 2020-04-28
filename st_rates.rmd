@@ -1,6 +1,8 @@
 ---
 title: "R Notebook"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 Loading packages
@@ -15,7 +17,6 @@ library(jsonlite)
 library(ggrepel)
 library(stringr)
 ```
-done
 
 
 Pulling the most recent data from covidtracking.com...
@@ -24,10 +25,14 @@ all_data <- "https://covidtracking.com/api/v1/states/daily.json" %>%
   fromJSON() %>%
   as.data.table()
 ```
-done
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+print(str_c("As of ", Sys.time()))
+```
 
 
-Narrowing to data to graph...
+
+Narrowing data...
 ```{r include=FALSE}
 my_data <- all_data %>% 
   mutate(as_of = ymd(date),
@@ -44,19 +49,19 @@ my_data <- all_data %>%
   data.table()
 
 ```
-done
 
 
-Using state population data
+
+Adding state population data...
 ```{r include=FALSE}
 st_pop_2019 <- read_csv("st_pop.csv") %>% 
   select(name = 5, pop_2019 = 17) %>% 
   mutate(pop_2019 = as.integer(pop_2019))
 ```
-done
 
 
-Building tables
+
+Building tables...
 ```{r include=FALSE}
 code_names <- data.table(cbind(name = state.name,
                  code = state.abb,
@@ -106,7 +111,7 @@ test_growth %>%
   filter((tests_weekly_per_mil < quantile(test_growth$tests_weekly_per_mil, probs = 0.2)) | (tests_weekly_per_mil > quantile(test_growth$tests_weekly_per_mil, probs = 0.8))) %>% 
   ggplot() +
   geom_col(mapping = aes(x = reorder(x = code, X = tests_weekly_per_mil), y = tests_weekly_per_mil, fill = region)) +
-  labs(x = "state", y = "Weekly tests per million residents", title = stringr::str_c("States with the most and fewest tests per million"), subtitle = str_c("week ending", death_growth$wk_ending[1], sep = " "))
+  labs(x = "state", y = "Weekly tests per million residents", title = stringr::str_c("States with the fewest and most tests per million"), subtitle = str_c("week ending", death_growth$wk_ending[1], sep = " "))
 ```
 
 
@@ -122,7 +127,7 @@ test_growth %>%
 ```
 
 
-```{r echo=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 death_growth %>%
   inner_join(case_growth) %>% 
   inner_join(code_names) %>% 
@@ -134,30 +139,32 @@ death_growth %>%
 ```
 
 
-```{r echo=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 death_growth %>%
   inner_join(code_names) %>% 
   ggplot(mapping = aes(x = death_weekly_growth, y = death_weekly_per_mil, color = region)) +
   ## geom_point() +
   ggrepel::geom_text_repel(mapping = aes(label = code)) +
   labs(x = "Weekly death growth rate", y = "Weekly deaths per million", title = "Deaths over the past week per million and growth in deaths",
-       subtitle = "Shows states having a hard time now and those who may face hard times soon")
+       subtitle = "States having a hard time now and those who may face hard times soon")
 ```
-```{r echo = FALSE}
+```{r echo=, message=FALSE, warning=FALSE}
 death_growth %>%
   inner_join(code_names) %>%
-  mutate(days_to_double_death = if_else(death_weekly_growth == 0, 99,
+  mutate(days_to_double_death = if_else(death_weekly_growth == 0,
+                                        0,
                                         round(14 * log(2) / log (1 + death_weekly_growth), 0) / 2)) %>% 
+  arrange(desc(days_to_double_death)) %>% 
   ggplot(mapping = aes(x = death_weekly_growth, y = days_to_double_death, color = region)) +
-  ## geom_point() +
-  ggrepel::geom_text_repel(mapping = aes(label = code))
-  # labs(x = "Weekly death growth rate", y = "Weekly deaths per million", title = "Deaths over the past week per million and growth in deaths", subtitle = "Shows states having a hard time now and those who may face hard times soon")
+  geom_label(mapping = aes(label = code)) +
+  ggplot2::ylim(0, 125) +
+  labs(x = "Weekly death growth rate", y = "Days for total number of deaths to double", title = "Two ways to show growth in deaths")
 
 ```
 
 
 
-```{r echo=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 case_growth %>%
   inner_join(code_names) %>% 
   ggplot(mapping = aes(x = cases_weekly_growth, y = cases_weekly_per_mil, color = region)) +
@@ -169,7 +176,7 @@ case_growth %>%
 
 
 
-```{r echo=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 pk <- c("OH")
 
 
@@ -190,7 +197,7 @@ my_data %>%
 ```
 
 
-```{r echo=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 pk <- c("OH")
 
 my_data %>% 
@@ -207,7 +214,7 @@ my_data %>%
   labs(title = str_c("Are new", pk,"cases plateauing or even dropping?", sep = " "), subtitle = "New cases per day since mid-March", x = "date", y = "New COVID-19 cases per day")
 ```
 
-```{r echo=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 pk <- c("NY")
 
 my_data %>% 
@@ -226,7 +233,7 @@ my_data %>%
 ```
 
 
-```{r echo=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 pk <- c("NY", "NJ", "MA", "MI", "LA", "CT", "DC", "RI")
 
 my_data %>% 
@@ -246,7 +253,7 @@ my_data %>%
 
 
 
-```{r echo=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 top_n(death_growth, n = 20) %>%
   inner_join(top_n(case_growth, n = 20)) %>%
   inner_join(code_names) %>% 
@@ -261,7 +268,7 @@ top_n(death_growth, n = 20) %>%
 
 
 
-```{r echo=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 death_growth %>%
   inner_join(case_growth) %>%
   inner_join(code_names) %>% 
@@ -274,7 +281,7 @@ death_growth %>%
 
 
 
-```{r echo=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 top_n(death_growth, n = 20) %>%
   inner_join(top_n(case_growth, n = 20)) %>%
   inner_join(code_names) %>% 
@@ -289,7 +296,7 @@ top_n(death_growth, n = 20) %>%
 
 
 
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 since_100 <- my_data %>% 
   arrange(code, as_of) %>% 
   inner_join(code_names) %>% 
@@ -303,12 +310,12 @@ since_100 <- my_data %>%
 ```
 
 
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 since_100_labels <- since_100 %>% 
   group_by(code) %>% 
   summarize(lab_days = max(days_in), lab_deaths = max(deaths_pm))
 
-test_code <- c("CA", "WV", "AR", "TX", "FL", "KY", "TN")
+test_code <- c("CA", "WV", "TX", "FL", "KY", "TN", "OH", "MS", "GA", "SD", "ND", "AZ")
 
 since_100 %>%
   filter(code %in% test_code) %>% 
@@ -318,14 +325,17 @@ since_100 %>%
          lab_deaths = if_else(lab_deaths == deaths_pm, lab_deaths, NULL)) %>%
   ggplot(mapping = aes(color = code, x = days_in, y = deaths_pm)) +
   geom_line() +
-  geom_label_repel(aes(x = lab_days, y = lab_deaths, label = code), na.rm = TRUE)
+  geom_label_repel(aes(x = lab_days, y = lab_deaths, label = code), na.rm = TRUE) +
+  labs(x = "Days since a state identified COVID-19 in 0.01% of its residents",
+       y = "Cumulative deaths per million residents",
+       title = "Allows for comparison between states on different timelines")
   
 
 ```
 
 
 
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 since_100 %>% 
   inner_join(since_100_labels) %>% 
   mutate(cfr = death / cases,
@@ -334,7 +344,7 @@ since_100 %>%
   ggplot(mapping = aes(x = tests_pm, y = cfr, label = code)) +
   geom_smooth(method = "lm") +
   geom_text_repel(mapping = aes(color = region)) +
-  labs(x = "Coronavirus tests per million residents", y = "Case fatality ratio", title = "")
+  labs(x = "Coronavirus tests per million residents", y = "Case fatality ratio", title = "Testing more is associated with a lower case fatality rate")
   
 ```
 
