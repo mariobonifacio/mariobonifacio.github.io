@@ -148,19 +148,6 @@ death_growth %>%
   labs(x = "Weekly death growth rate", y = "Weekly deaths per million", title = "Deaths over the past week per million and growth in deaths",
        subtitle = "States having a hard time now and those who may face hard times soon")
 ```
-```{r echo=, message=FALSE, warning=FALSE}
-death_growth %>%
-  inner_join(code_names) %>%
-  mutate(days_to_double_death = if_else(death_weekly_growth == 0,
-                                        0,
-                                        round(14 * log(2) / log (1 + death_weekly_growth), 0) / 2)) %>% 
-  arrange(desc(days_to_double_death)) %>% 
-  ggplot(mapping = aes(x = death_weekly_growth, y = days_to_double_death, color = region)) +
-  geom_label(mapping = aes(label = code)) +
-  ggplot2::ylim(0, 125) +
-  labs(x = "Weekly death growth rate", y = "Days for total number of deaths to double", title = "Two ways to show growth in deaths")
-
-```
 
 
 
@@ -182,7 +169,7 @@ pk <- c("TX")
 
 my_data %>% 
   filter(code %in% pk) %>%
-    mutate(death_ch = if_else(as_of == ymd("2020-04-30") & code = "TX", 50, as.double(death_ch))) %>% 
+    mutate(death_ch = if_else(as_of == ymd("2020-04-30") & code == "TX", 50, as.double(death_ch))) %>% 
   group_by(as_of) %>%
   summarize(us_cases = sum(cases, na.rm = TRUE),
             us_cases_ch = sum(case_ch, na.rm = TRUE),
