@@ -177,12 +177,12 @@ case_growth %>%
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-pk <- c("OH")
-
+pk <- c("TX")
 
 
 my_data %>% 
   filter(code %in% pk) %>%
+    mutate(death_ch = if_else(as_of == ymd("2020-04-30") & code = "TX", 50, as.double(death_ch))) %>% 
   group_by(as_of) %>%
   summarize(us_cases = sum(cases, na.rm = TRUE),
             us_cases_ch = sum(case_ch, na.rm = TRUE),
@@ -193,12 +193,12 @@ my_data %>%
   ggplot(mapping = aes(x = as_of, y = us_deaths_ch)) +
   geom_smooth(linetype = "dashed") +
   geom_line(size = 1) +
-  labs(title = str_c("Are", pk, "deaths plateauing or even dropping?", sep = " "), subtitle = str_c("Deaths per day since", min(my_data[code %in% pk, as_of]), sep = " "), x = "date", y = "COVID-19 deaths")
+  labs(title = str_c("Are", pk, "deaths plateauing or even dropping?", sep = " "), subtitle = str_c("Deaths per day since", min(my_data[code %in% pk, as_of]), sep = " "), x = "date", y = "COVID-19 daily deaths")
 ```
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-pk <- c("OH")
+pk <- c("TX")
 
 my_data %>% 
   filter(code %in% pk) %>%
@@ -315,10 +315,11 @@ since_100_labels <- since_100 %>%
   group_by(code) %>% 
   summarize(lab_days = max(days_in), lab_deaths = max(deaths_pm))
 
-test_code <- c("CA", "WV", "TX", "FL", "KY", "TN", "OH", "MS", "GA", "SD", "ND", "AZ")
+test_code <- c("GA", "WA", "TX", "AR", "CA", "FL", "OK")
 
 since_100 %>%
-  filter(code %in% test_code) %>% 
+  filter(code %in% test_code) %>%
+  mutate(death_ch = if_else(as_of == ymd("2020-04-30") & code == "TX", 50, as.double(death_ch))) %>% 
   inner_join(since_100_labels) %>%
   group_by(code) %>% 
   mutate(lab_days = if_else(lab_days == days_in, lab_days, NULL),
