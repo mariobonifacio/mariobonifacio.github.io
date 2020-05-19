@@ -174,7 +174,7 @@ case_growth %>%
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-pk <- c("GA")
+pk <- c("TX")
 
 
 my_data %>% 
@@ -195,7 +195,7 @@ my_data %>%
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-pk <- c("GA")
+pk <- c("TX")
 
 my_data %>% 
   filter(code %in% pk) %>%
