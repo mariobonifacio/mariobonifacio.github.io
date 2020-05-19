@@ -108,7 +108,7 @@ test_growth %>%
   inner_join(code_names, by = "code") %>%
   inner_join(case_growth, by = "code") %>% 
   arrange(desc(tests_weekly_per_mil)) %>% 
-  filter((tests_weekly_per_mil < quantile(test_growth$tests_weekly_per_mil, probs = 0.2)) | (tests_weekly_per_mil > quantile(test_growth$tests_weekly_per_mil, probs = 0.8))) %>% 
+  filter((tests_weekly_per_mil < quantile(test_growth$tests_weekly_per_mil, probs = 0.2)) | (tests_weekly_per_mil > quantile(test_growth$tests_weekly_per_mil, probs = 0.7))) %>% 
   ggplot() +
   geom_col(mapping = aes(x = reorder(x = code, X = tests_weekly_per_mil), y = tests_weekly_per_mil, fill = region)) +
   labs(x = "state", y = "Weekly tests per million residents", title = stringr::str_c("States with the fewest and most tests per million"), subtitle = str_c("week ending", death_growth$wk_ending[1], sep = " "))
@@ -123,7 +123,7 @@ test_growth %>%
   # filter(tests_weekly_per_mil < quantile(test_growth$tests_weekly_per_mil, probs = 0.5)) %>% 
   ggplot(mapping = aes(x = death_weekly_growth, y = tests_weekly_per_mil, label = code, fill = region)) +
   geom_label_repel() +
-  labs(x = "Growth in weekly deaths", y = "Weekly tests per million residents", title = stringr::str_c("State tests and weekly growth in deaths for the week ending", death_growth$wk_ending[1], sep = " "))
+  labs(x = "Growth in weekly deaths", y = "Weekly tests per million residents", title = stringr::str_c("State tests and weekly growth in deaths"), subtitle = str_c("week ending", death_growth$wk_ending[1], sep = " "))
 ```
 
 
@@ -131,7 +131,7 @@ test_growth %>%
 case_growth %>%
   inner_join(code_names) %>% 
   arrange(desc(cases_weekly_per_mil)) %>% 
-  filter(cases_weekly_per_mil > quantile(case_growth$cases_weekly_per_mil, probs = 0.8)) %>% 
+  filter(cases_weekly_per_mil > quantile(case_growth$cases_weekly_per_mil, probs = 0.7)) %>% 
   ggplot() +
   geom_col(mapping = aes(x = reorder(code, X = desc(cases_weekly_per_mil)), y = cases_weekly_per_mil, fill = region)) +
   labs(x = "state", y = "Weekly cases per million residents", title = stringr::str_c("States with most new cases per million, week ending", case_growth$wk_ending[1], sep = " "))
@@ -174,7 +174,7 @@ case_growth %>%
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-pk <- c("TX")
+pk <- c("GA")
 
 
 my_data %>% 
@@ -195,7 +195,7 @@ my_data %>%
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-pk <- c("TX")
+pk <- c("GA")
 
 my_data %>% 
   filter(code %in% pk) %>%
@@ -312,7 +312,7 @@ since_100_labels <- since_100 %>%
   group_by(code) %>% 
   summarize(lab_days = max(days_in), lab_deaths = max(deaths_pm))
 
-test_code <- c("GA", "WA", "TX", "AR", "CA", "FL", "OK", "MN", "MA", "IL", "NY")
+test_code <- c("GA", "WA", "TX", "AR", "CA", "FL", "OK", "MN")
 
 since_100 %>%
   filter(code %in% test_code) %>%
