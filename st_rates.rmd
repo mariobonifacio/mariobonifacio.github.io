@@ -188,8 +188,9 @@ my_data %>%
   filter(us_deaths > 9) %>% 
   mutate(since = min(as_of)) %>% 
   ggplot(mapping = aes(x = as_of, y = us_deaths_ch)) +
-  geom_smooth(linetype = "dashed") +
-  geom_line(size = 1) +
+  geom_smooth(linetype = 0, mapping = aes(fill = weekdays(as_of)), alpha = 0.1) +
+  geom_smooth(size = 1, alpha = 0, linetype = 2, color = "black") +
+  theme(legend.position = "none") +
   labs(title = str_c("Are", pk, "deaths plateauing or even dropping?", sep = " "), subtitle = str_c("Deaths per day since", min(my_data[code %in% pk, as_of]), sep = " "), x = "date", y = "COVID-19 daily deaths")
 ```
 
@@ -206,8 +207,9 @@ my_data %>%
             us_deaths_ch = sum(death_ch, na.rm = TRUE)) %>% 
   filter(us_deaths > 9) %>% 
   ggplot(mapping = aes(x = as_of, y = us_cases_ch)) +
-  geom_smooth(linetype = "dashed", method = "loess", formula = y ~ x) +
-  geom_line() +
+  geom_smooth(linetype = 0, mapping = aes(fill = weekdays(as_of)), alpha = 0.1) +
+  geom_smooth(size = 1, alpha = 0, linetype = 2, color = "black") +
+  theme(legend.position = "none") +
   labs(title = str_c("Are new", pk,"cases plateauing or even dropping?", sep = " "), subtitle = "New cases per day since mid-March", x = "date", y = "New COVID-19 cases per day")
 ```
 
@@ -231,7 +233,7 @@ my_data %>%
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-pk <- c("NY", "NJ", "MA", "MI", "LA", "CT", "DC", "RI")
+pk <- c("NY", "NJ", "MA", "MI", "CT", "RI")
 
 my_data %>% 
   filter(!(code %in% (pk))) %>% 
@@ -243,9 +245,10 @@ my_data %>%
   filter(us_cases > 99) %>%
   mutate(since = min(as_of)) %>% 
   ggplot(mapping = aes(x = as_of, y = us_cases_ch)) +
-  geom_smooth(linetype = "dashed") +
-  geom_line(size = 1) +
-  labs(title = str_c("Are non-", pk, " cases plateauing or even dropping?", sep = ""), subtitle = "U.S. cases since the 100th case", x = "date", y = "COVID-19 new cases")
+  geom_smooth(linetype = 0, alpha = .2, mapping = aes(fill = weekdays(as_of))) +
+  geom_smooth(alpha = 0, size = 1, linetype = 2, color = "black") +
+  theme(legend.position = "none") +
+  labs(title = str_c("Are non-", str_c(pk, collapse = ", "), " cases plateauing or even dropping?", sep = ""), subtitle = "U.S. cases since the 100th case", x = "date", y = "COVID-19 new cases")
 ```
 
 
@@ -260,7 +263,7 @@ top_n(death_growth, n = 20) %>%
   geom_smooth(method = "lm", mapping = aes(color = NULL), linetype = "dotted", fill = 0.1, color = "lightgray") +
   ## geom_point(mapping = aes(color = region), size = 2) +
   ggrepel::geom_text_repel(mapping = aes(label = code, color = region)) +
-  labs(x = "Weekly deaths per million", y = "Weekly new cases per million", title = "States dealing with a lot right now")
+  labs(x = "Weekly deaths per million", y = "Weekly new cases per million", title = "States dealing with a lot right now", subtitle = str_c("As of ", death_growth[[1, "wk_ending"]]))
 ```
 
 
@@ -272,8 +275,8 @@ death_growth %>%
   filter((death_weekly_growth > death_growth$death_weekly_growth[20]) |
            (cases_weekly_growth > case_growth$cases_weekly_growth[20])) %>% 
   ggplot(mapping = aes(x = death_weekly_growth, y = cases_weekly_growth, color = region)) +
-  ggrepel::geom_label_repel(mapping = aes(label = code)) +
-  labs(x = "Weekly growth in deaths", y = "Weekly growth in cases", title = "States where deaths or new cases are rising")
+  ggrepel::geom_text_repel(mapping = aes(label = code)) +
+  labs(x = "Weekly growth in deaths", y = "Weekly growth in cases", title = "States where deaths or new cases are rising", subtitle = str_c("As of ", death_growth[[1, "wk_ending"]]))
 ```
 
 
