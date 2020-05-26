@@ -186,12 +186,14 @@ my_data %>%
             us_deaths = sum(death, na.rm = TRUE),
             us_deaths_ch = sum(death_ch, na.rm = TRUE)) %>% 
   filter(us_deaths > 9) %>% 
-  mutate(since = min(as_of)) %>% 
+  mutate(since = min(as_of),
+         is_day = if_else(weekdays(as_of) == weekdays(my_data[[1,1]]), 0.3, 0.1)) %>% 
   ggplot(mapping = aes(x = as_of, y = us_deaths_ch)) +
-  geom_smooth(linetype = 0, mapping = aes(fill = weekdays(as_of)), alpha = 0.1) +
+  geom_smooth(linetype = 0, mapping = aes(fill = weekdays(as_of), alpha = is_day)) +
   geom_smooth(size = 1, alpha = 0, linetype = 2, color = "black") +
   theme(legend.position = "none") +
-  labs(title = str_c("Are", pk, "deaths plateauing or even dropping?", sep = " "), subtitle = str_c("Deaths per day since", min(my_data[code %in% pk, as_of]), sep = " "), x = "date", y = "COVID-19 daily deaths")
+  labs(title = str_c("Are", pk, "deaths plateauing or even dropping?", sep = " "), subtitle = str_c("Deaths per day since", min(my_data[code %in% pk, as_of]), sep = " "), x = "date", y = "COVID-19 daily deaths") +
+  scale_alpha(range = c(.1, .3))
 ```
 
 
@@ -346,5 +348,9 @@ since_100 %>%
   geom_text_repel(mapping = aes(color = region)) +
   labs(x = "Coronavirus tests per million residents", y = "Case fatality ratio", title = "Testing more is associated with a lower case fatality rate")
   
+```
+
+```{r}
+
 ```
 
