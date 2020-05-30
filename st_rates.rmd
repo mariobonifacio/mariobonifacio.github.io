@@ -85,8 +85,8 @@ death_growth <- code_names %>%
   inner_join(st_pop_2019) %>% 
   inner_join(my_data) %>% 
   group_by(code) %>% 
-  filter(as_of > as_date(ymd_hms(now())) - 7) %>%
-  summarize(death_weekly_growth = round((max(death) - min(death)) / min(death), 2), death_weekly_per_mil = signif(sum(death_ch) / mean(pop_2019) * 1000000, 3), wk_ending = max(as_of)) %>% 
+  filter(as_of > as_date(ymd_hms(now())) - 14) %>%
+  summarize(death_weekly_growth = round(((max(death) - min(death)) / min(death)) ^ 0.5, 2), death_weekly_per_mil = signif(sum(death_ch) / mean(pop_2019) * 1000000 / 2, 3), wk_ending = max(as_of)) %>% 
   arrange(desc(death_weekly_growth))
 ```
 
@@ -95,8 +95,8 @@ case_growth <- code_names %>%
   inner_join(st_pop_2019) %>% 
   inner_join(my_data) %>% 
   group_by(code) %>% 
-  filter(as_of > as_date(ymd_hms(now())) - 7) %>%
-  summarize(cases_weekly_growth = round((max(cases) - min(cases)) / min(cases), 2), cases_weekly_per_mil = signif(((max(cases) - min(cases)) / mean(pop_2019) * 1000000), 3), wk_ending = max(as_of)) %>% 
+  filter(as_of > as_date(ymd_hms(now())) - 14) %>%
+  summarize(cases_weekly_growth = round(((max(cases) - min(cases)) / min(cases)) ^ 0.5, 2), cases_weekly_per_mil = signif(((max(cases) - min(cases)) / mean(pop_2019) * 1000000 / 2), 3), wk_ending = max(as_of)) %>% 
   arrange(desc(cases_weekly_growth))
 ```
 done
@@ -134,7 +134,7 @@ case_growth %>%
   filter(cases_weekly_per_mil > quantile(case_growth$cases_weekly_per_mil, probs = 0.7)) %>% 
   ggplot() +
   geom_col(mapping = aes(x = reorder(code, X = desc(cases_weekly_per_mil)), y = cases_weekly_per_mil, fill = region)) +
-  labs(x = "state", y = "Weekly cases per million residents", title = stringr::str_c("States with most new cases per million, week ending", case_growth$wk_ending[1], sep = " "))
+  labs(x = "state", y = "Weekly cases per million residents", title = stringr::str_c("States with most new cases per million"), subtitle = str_c("2 weeks ending", case_growth$wk_ending[1], sep = " "))
 ```
 
 
@@ -317,7 +317,7 @@ since_100_labels <- since_100 %>%
   group_by(code) %>% 
   summarize(lab_days = max(days_in), lab_deaths = max(deaths_pm))
 
-test_code <- c("GA", "WA", "TX", "AR", "CA", "FL", "OK", "MN")
+test_code <- c("GA", "WA", "TX", "AR", "CA", "FL", "OK", "MN", "MS")
 
 since_100 %>%
   filter(code %in% test_code) %>%
