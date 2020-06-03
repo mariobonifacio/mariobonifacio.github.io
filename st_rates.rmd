@@ -65,8 +65,26 @@ Building tables...
 ```{r include=FALSE}
 code_names <- data.table(cbind(name = state.name,
                  code = state.abb,
-                 region = as.character(state.region)))
+                 region = as.character(state.region),
+                 reg_2 = c("South", "Plains and Mountains", "Southwest", "Middle South", "West Coast",
+                           "Southwest", "Northeast", "Northeast", "South", "South",
+                           
+                           "West Coast", "Plains and Mountains", "Midwest", "Midwest", "Midwest",
+                           "Plains and Mountains", "Middle South", "South", "Northeast", "Northeast",
+                           
+                           "Northeast", "Midwest", "Midwest", "South", "Midwest",
+                           "Plains and Mountains", "Plains and Mountains", "Southwest", "Northeast", "Northeast",
+                           
+                           "Southwest", "Northeast", "South", "Plains and Mountains", "Midwest",
+                           "Plains and Mountains", "West Coast", "Northeast", "Northeast", "South",
+                           
+                           "Plains and Mountains", "Middle South", "South", "Plains and Mountains", "Northeast",
+                           "South", "West Coast", "Middle South", "Midwest", "Plains and Mountains")))
 ```
+
+
+
+
 
 ```{r include=FALSE}
 test_growth <- code_names %>% 
@@ -110,7 +128,7 @@ test_growth %>%
   arrange(desc(tests_weekly_per_mil)) %>% 
   filter((tests_weekly_per_mil < quantile(test_growth$tests_weekly_per_mil, probs = 0.2)) | (tests_weekly_per_mil > quantile(test_growth$tests_weekly_per_mil, probs = 0.7))) %>% 
   ggplot() +
-  geom_col(mapping = aes(x = reorder(x = code, X = tests_weekly_per_mil), y = tests_weekly_per_mil, fill = region)) +
+  geom_col(mapping = aes(x = reorder(x = code, X = tests_weekly_per_mil), y = tests_weekly_per_mil, fill = reg_2)) +
   labs(x = "state", y = "Weekly tests per million residents", title = stringr::str_c("States with the fewest and most tests per million"), subtitle = str_c("week ending", death_growth$wk_ending[1], sep = " "))
 ```
 
@@ -121,7 +139,7 @@ test_growth %>%
   inner_join(death_growth, by = "code") %>% 
   arrange(desc(tests_weekly_per_mil)) %>% 
   # filter(tests_weekly_per_mil < quantile(test_growth$tests_weekly_per_mil, probs = 0.5)) %>% 
-  ggplot(mapping = aes(x = death_weekly_growth, y = tests_weekly_per_mil, label = code, fill = region)) +
+  ggplot(mapping = aes(x = death_weekly_growth, y = tests_weekly_per_mil, label = code, fill = reg_2)) +
   geom_label_repel() +
   labs(x = "Growth in weekly deaths", y = "Weekly tests per million residents", title = stringr::str_c("State tests and weekly growth in deaths"), subtitle = str_c("week ending", death_growth$wk_ending[1], sep = " "))
 ```
@@ -133,7 +151,7 @@ case_growth %>%
   arrange(desc(cases_weekly_per_mil)) %>% 
   filter(cases_weekly_per_mil > quantile(case_growth$cases_weekly_per_mil, probs = 0.7)) %>% 
   ggplot() +
-  geom_col(mapping = aes(x = reorder(code, X = desc(cases_weekly_per_mil)), y = cases_weekly_per_mil, fill = region)) +
+  geom_col(mapping = aes(x = reorder(code, X = desc(cases_weekly_per_mil)), y = cases_weekly_per_mil, fill = reg_2)) +
   labs(x = "state", y = "Weekly cases per million residents", title = stringr::str_c("States with most new cases per million"), subtitle = str_c("2 weeks ending", case_growth$wk_ending[1], sep = " "))
 ```
 
@@ -144,7 +162,7 @@ case_growth %>%
   arrange(desc(cases_weekly_growth)) %>% 
   filter(cases_weekly_growth > quantile(case_growth$cases_weekly_growth, probs = 0.7)) %>% 
   ggplot() +
-  geom_col(mapping = aes(x = reorder(code, X = desc(cases_weekly_growth)), y = cases_weekly_growth, fill = region)) +
+  geom_col(mapping = aes(x = reorder(code, X = desc(cases_weekly_growth)), y = cases_weekly_growth, fill = reg_2)) +
   labs(x = "state", y = "weekly case growth rate", title = stringr::str_c("Highest case growth rate by state, week ending", case_growth$wk_ending[1], sep = " "))
 ```
 
@@ -152,7 +170,7 @@ case_growth %>%
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 death_growth %>%
   inner_join(code_names) %>% 
-  ggplot(mapping = aes(x = death_weekly_growth, y = death_weekly_per_mil, color = region)) +
+  ggplot(mapping = aes(x = death_weekly_growth, y = death_weekly_per_mil, color = reg_2)) +
   ## geom_point() +
   ggrepel::geom_text_repel(mapping = aes(label = code)) +
   labs(x = "Weekly death growth rate", y = "Weekly deaths per million", title = "Deaths over the past week per million and growth in deaths",
@@ -164,7 +182,7 @@ death_growth %>%
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 case_growth %>%
   inner_join(code_names) %>% 
-  ggplot(mapping = aes(x = cases_weekly_growth, y = cases_weekly_per_mil, color = region)) +
+  ggplot(mapping = aes(x = cases_weekly_growth, y = cases_weekly_per_mil, color = reg_2)) +
   ## geom_point() +
   ggrepel::geom_text_repel(mapping = aes(label = code)) +
   labs(x = "Weekly case growth rate", y = "Weekly new cases per million", title = "Cases over the past week per million and growth in cases",
@@ -263,8 +281,8 @@ top_n(death_growth, n = 20) %>%
            (cases_weekly_per_mil > as.numeric(reorder(case_growth$cases_weekly_per_mil, desc(case_growth$cases_weekly_per_mil))[[11]]))) %>% 
   ggplot(mapping = aes(x = death_weekly_per_mil, y = cases_weekly_per_mil)) +
   geom_smooth(method = "lm", mapping = aes(color = NULL), linetype = "dotted", fill = 0.1, color = "lightgray") +
-  ## geom_point(mapping = aes(color = region), size = 2) +
-  ggrepel::geom_text_repel(mapping = aes(label = code, color = region)) +
+  ## geom_point(mapping = aes(color = reg_2), size = 2) +
+  ggrepel::geom_text_repel(mapping = aes(label = code, color = reg_2)) +
   labs(x = "Weekly deaths per million", y = "Weekly new cases per million", title = "States dealing with a lot right now", subtitle = str_c("As of ", death_growth[[1, "wk_ending"]]))
 ```
 
@@ -276,7 +294,7 @@ death_growth %>%
   inner_join(code_names) %>% 
   filter((death_weekly_growth > death_growth$death_weekly_growth[20]) |
            (cases_weekly_growth > case_growth$cases_weekly_growth[20])) %>% 
-  ggplot(mapping = aes(x = death_weekly_growth, y = cases_weekly_growth, color = region)) +
+  ggplot(mapping = aes(x = death_weekly_growth, y = cases_weekly_growth, color = reg_2)) +
   ggrepel::geom_text_repel(mapping = aes(label = code)) +
   labs(x = "Weekly growth in deaths", y = "Weekly growth in cases", title = "States where deaths or new cases are rising", subtitle = str_c("As of ", death_growth[[1, "wk_ending"]]))
 ```
@@ -291,8 +309,8 @@ top_n(death_growth, n = 20) %>%
            (cases_weekly_per_mil > as.numeric(reorder(case_growth$cases_weekly_per_mil, desc(case_growth$cases_weekly_per_mil))[[11]]))) %>% 
   ggplot(mapping = aes(x = death_weekly_per_mil, y = cases_weekly_per_mil)) +
   geom_smooth(method = "lm", mapping = aes(color = NULL), linetype = "dotted", fill = 0.1, color = "lightgray") +
-  ## geom_point(mapping = aes(color = region), size = 2) +
-  ggrepel::geom_text_repel(mapping = aes(label = code, color = region)) +
+  ## geom_point(mapping = aes(color = reg_2), size = 2) +
+  ggrepel::geom_text_repel(mapping = aes(label = code, color = reg_2)) +
   labs(x = "Weekly deaths per million", y = "Weekly new cases per million", title = "States dealing with a lot right now")
 ```
 
@@ -345,7 +363,7 @@ since_100 %>%
   filter(days_in == 21) %>% 
   ggplot(mapping = aes(x = tests_pm, y = cfr, label = code)) +
   geom_smooth(method = "lm") +
-  geom_text_repel(mapping = aes(color = region)) +
+  geom_text_repel(mapping = aes(color = reg_2)) +
   labs(x = "Coronavirus tests per million residents", y = "Case fatality ratio", title = "Testing more is associated with a lower case fatality rate")
   
 ```
