@@ -266,19 +266,21 @@ pk <- c("")
 
 my_data %>% 
   # filter(code %in% pk) %>%
-  group_by(as_of) %>%
+  group_by(as_of, code) %>%
   summarize(us_cases = sum(cases, na.rm = TRUE),
             us_cases_ch = sum(case_ch, na.rm = TRUE),
             us_deaths = sum(death, na.rm = TRUE),
             us_deaths_ch = sum(death_ch, na.rm = TRUE)) %>% 
-  filter(us_deaths > 9) %>% 
+  inner_join(code_names) %>% 
+  filter(as_of > ymd(20200331),
+         reg_2 %in% c("South", "Midwest", "Northeast", "Southwest")) %>% 
   ggplot(mapping = aes(x = as_of, y = us_cases_ch)) +
-  geom_smooth(linetype = 0, mapping = aes(fill = weekdays(as_of)), alpha = 0.1) +
-  geom_smooth(size = 1, alpha = 0, linetype = 2, color = "black") +
+  # geom_smooth(linetype = 0, mapping = aes(fill = weekdays(as_of)), alpha = 0.1) +
+  geom_smooth(size = 1, linetype = 1, mapping = aes(color = reg_2, fill = reg_2), span = .3, alpha = .1) +
   geom_vline(xintercept = ymd("2020-05-22") + days(5), color = "red") +
   geom_vline(xintercept = ymd("2020-05-29") + days(5), color = "blue") +
-  theme(legend.position = "none") +
-  labs(title = str_c("Are new", pk,"cases plateauing or even dropping?", sep = " "), subtitle = "New cases per day since 1 death per million", x = "date", y = "New COVID-19 cases per day")
+  theme(legend.title = element_blank()) +
+  labs(title = "After mid-May, cases fell in the north from Minnesota to Maine\nand rose in sun belt states from Arizona to Florida", subtitle = "New cases per day since 1 April", x = "date", y = "New COVID-19 cases per day", caption = "Vertical red & blue lines mark five days after the start of\nMemorial Day weekend and national protests, respectively")
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
