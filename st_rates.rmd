@@ -239,7 +239,7 @@ case_growth %>%
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-pk <- c("CA")
+pk <- c("MN")
 
 
 my_data %>% 
@@ -256,8 +256,34 @@ my_data %>%
   ggplot(mapping = aes(x = as_of, y = us_deaths_ch)) +
   geom_smooth(linetype = 0, mapping = aes(fill = weekdays(as_of), alpha = is_day)) +
   geom_smooth(size = 1, alpha = 0, linetype = 2, color = "black") +
+  geom_vline(xintercept = ymd(20200526) + days(5)) +
   theme(legend.position = "none") +
-  labs(title = str_c("Are", pk, "deaths plateauing or even dropping?", sep = " "), subtitle = str_c("Deaths per day since", min(my_data[code %in% pk, as_of]), sep = " "), x = "date", y = "COVID-19 daily deaths") +
+  labs(title = str_c("Are", pk, "deaths plateauing or even dropping?", sep = " "), subtitle = str_c("Deaths per day since", min(my_data[code %in% pk, as_of]), sep = " "), x = NULL, y = "COVID-19 daily deaths") +
+  scale_alpha(range = c(.1, .3))
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+pk <- c("MN")
+
+
+my_data %>% 
+  filter(code %in% pk) %>%
+    mutate(case_ch = as.double(case_ch)) %>% 
+  group_by(as_of) %>%
+  summarize(us_cases = sum(cases, na.rm = TRUE),
+            us_cases_ch = sum(case_ch, na.rm = TRUE),
+            us_deaths = sum(death, na.rm = TRUE),
+            us_deaths_ch = sum(death_ch, na.rm = TRUE)) %>% 
+  filter(us_deaths > 9) %>% 
+  mutate(since = min(as_of),
+         is_day = if_else(weekdays(as_of) == weekdays(my_data[[1,1]]), 0.3, 0.1)) %>% 
+  ggplot(mapping = aes(x = as_of, y = us_cases_ch)) +
+  geom_smooth(linetype = 0, mapping = aes(fill = weekdays(as_of), alpha = is_day)) +
+  geom_smooth(size = 1, alpha = 0, linetype = 1, color = "black", span = .5) +
+  geom_vline(xintercept = ymd(20200526) + days(5), color = "dodgerblue", linetype = 2) +
+  theme(legend.position = "none") +
+  labs(title = str_c("Are", pk, "cases plateauing or even dropping?", sep = " "), subtitle = str_c("cases per day since", min(my_data[code %in% pk, as_of]), sep = " "), x = NULL, y = "COVID-19 daily deaths", caption = "The vertical, dashed blue line marks five days after 26 May, the first day of Minneapolis protests") +
   scale_alpha(range = c(.1, .3))
 ```
 
