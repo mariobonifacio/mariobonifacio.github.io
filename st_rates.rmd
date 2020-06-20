@@ -190,12 +190,13 @@ my_data %>%
   mutate(reg_2 = factor(reg_2, levels = c("Middle South", "Midwest", "Northeast", "Plain and Mountain", "South", "Southwest", "West Coast"))) %>% 
   ggplot() +
   geom_smooth(mapping = aes(x = as_of, y = case_sum, color = reg_2), alpha = .1) +
-  labs(x = "state", y = "New cases per million", title = "New cases drop sharply in the northeast, rise in the south", subtitle = str_c("Month ending", case_growth$wk_ending[1], sep = " ")) +
+  labs(x = "state", y = "New cases per million", title = "New cases drop sharply in the northeast, rise in the southwest", subtitle = str_c("Month ending", case_growth$wk_ending[1], sep = " ")) +
   facet_wrap(facets = vars(reorder(code, reg_2)), nrow = 5) +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
         axis.title.x  = element_blank(),
-        strip.background = element_rect(fill = "lightgray"))
+        strip.background = element_rect(fill = "lightgray"),
+        legend.title = element_blank())
 ```
 
 
@@ -277,11 +278,11 @@ my_data %>%
   filter(reg_2 %in% c("South", "Midwest", "Northeast", "Southwest", "West Coast")) %>% 
   ggplot(mapping = aes(x = as_of, y = us_cases_ch/pop_2019 * 1000000)) +
   # geom_smooth(linetype = 0, mapping = aes(fill = weekdays(as_of)), alpha = 0.1) +
-  geom_smooth(size = 1, linetype = 1, mapping = aes(color = reg_2, fill = reg_2), span = .3, alpha = .1) +
+  geom_smooth(size = 1, linetype = 1, mapping = aes(color = reg_2, fill = reg_2), span = .5, alpha = .1) +
   geom_vline(xintercept = ymd("2020-05-22") + days(5), color = "red", linetype = 2) +
   geom_vline(xintercept = ymd("2020-05-29") + days(5), color = "blue", linetype = 2) +
   theme(legend.title = element_blank()) +
-  labs(title = "After mid-May, cases fell in the North from Minnesota to Maine,\nrose on the West Coat, and rose sharply in the sun belt states\nfrom Arizona to Florida", subtitle = NULL, x = NULL, y = "New COVID-19 cases per million residents", caption = "Vertical red and blue lines mark five days after the start of\nMemorial Day weekend and national protests, respectively")
+  labs(title = "After mid-May, cases fell in the North from Minnesota to Maine,\nrose on the West Coat, and rose sharply in the sun belt states\nfrom Arizona to Florida", x = NULL, y = "New COVID-19 cases per million residents", caption = "Vertical red and blue lines mark five days after the start of\nMemorial Day weekend and national protests, respectively", subtitle = str_c("Data as of ", max(my_data$as_of)))
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
