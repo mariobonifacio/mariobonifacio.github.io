@@ -264,7 +264,7 @@ my_data %>%
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-pk <- c("AZ")
+pk <- c("OK")
 
 
 my_data %>% 
@@ -275,15 +275,15 @@ my_data %>%
             us_cases_ch = sum(case_ch, na.rm = TRUE),
             us_deaths = sum(death, na.rm = TRUE),
             us_deaths_ch = sum(death_ch, na.rm = TRUE)) %>% 
-  filter(us_deaths > 9) %>% 
+  filter(us_deaths > 99) %>% 
   mutate(since = min(as_of),
          is_day = if_else(weekdays(as_of) == weekdays(my_data[[1,1]]), 0.3, 0.1)) %>% 
   ggplot(mapping = aes(x = as_of, y = us_cases_ch)) +
   geom_smooth(linetype = 0, mapping = aes(fill = weekdays(as_of), alpha = is_day)) +
   geom_smooth(size = 1, alpha = 0, linetype = 1, color = "black", span = .5) +
-  geom_vline(xintercept = ymd(20200526) + days(5), color = "dodgerblue", linetype = 2) +
+  geom_vline(xintercept = ymd(20200621), color = "dodgerblue", linetype = 2) +
   theme(legend.position = "none") +
-  labs(title = str_c("Are", pk, "cases plateauing or even dropping?", sep = " "), subtitle = str_c("cases per day since", min(my_data[code %in% pk, as_of]), sep = " "), x = NULL, y = "COVID-19 daily deaths", caption = "The vertical, dashed blue line marks five days after 26 May, the first day of Minneapolis protests") +
+  labs(title = str_c("It appears as though", pk, "cases are neither plateauing, let alone dropping", sep = " "), subtitle = str_c("Cases per day since", min(my_data[death_ch > 9 & code == 'OK', as_of]), sep = " "), x = NULL, y = "New COVID-19 cases by day", caption = "The vertical, dashed blue line marks the President's 21 June rally in Tulsa") +
   scale_alpha(range = c(.1, .3))
 ```
 
