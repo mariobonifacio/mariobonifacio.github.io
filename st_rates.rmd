@@ -283,7 +283,7 @@ my_data %>%
   geom_smooth(size = 1, alpha = 0, linetype = 1, color = "black", span = .5) +
   geom_vline(xintercept = ymd(20200621), color = "dodgerblue", linetype = 2) +
   theme(legend.position = "none") +
-  labs(title = str_c("It appears as though", pk, "cases are neither plateauing, let alone dropping", sep = " "), subtitle = str_c("Cases per day since", min(my_data[death_ch > 9 & code == 'OK', as_of]), sep = " "), x = NULL, y = "New COVID-19 cases by day", caption = "The vertical, dashed blue line marks the President's 21 June rally in Tulsa") +
+  labs(title = str_c("It appears as though", pk, "cases are not plateauing, let alone dropping", sep = " "), subtitle = str_c("Cases per day since", min(my_data[death_ch > 9 & code == 'OK', as_of]), sep = " "), x = NULL, y = "New COVID-19 cases by day", caption = "The vertical, dashed blue line marks the President's 21 June rally in Tulsa") +
   scale_alpha(range = c(.1, .3))
 ```
 
@@ -371,13 +371,30 @@ top_n(death_growth, n = 20) %>%
 death_growth %>%
   inner_join(case_growth) %>%
   inner_join(code_names) %>% 
-  filter((death_weekly_growth > death_growth$death_weekly_growth[20]) |
-           (cases_weekly_growth > case_growth$cases_weekly_growth[20])) %>% 
+  filter((death_weekly_growth > 0) |
+           (cases_weekly_growth > 0)) %>% 
   ggplot(mapping = aes(x = death_weekly_growth, y = cases_weekly_growth, color = reg_2)) +
   ggrepel::geom_text_repel(mapping = aes(label = code)) +
-  labs(x = "Weekly growth in deaths", y = "Weekly growth in cases", title = "States where deaths or new cases are rising", subtitle = str_c("As of ", death_growth[[1, "wk_ending"]])) +
+  labs(x = "Weekly growth in deaths", y = "Weekly growth in cases", title = "States where the growth of deaths or new cases are rising", subtitle = str_c("As of ", death_growth[[1, "wk_ending"]])) +
   theme(legend.title=element_blank())
 ```
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+death_growth %>%
+  inner_join(case_growth) %>%
+  inner_join(code_names) %>% 
+  filter((death_weekly_growth <= 0) |
+           (cases_weekly_growth <= 0)) %>% 
+  ggplot(mapping = aes(x = death_weekly_growth, y = cases_weekly_growth, color = reg_2)) +
+  ggrepel::geom_text_repel(mapping = aes(label = code)) +
+  labs(x = "Weekly growth in deaths", y = "Weekly growth in cases", title = "States where the growth of deaths or new cases are falling", subtitle = str_c("As of ", death_growth[[1, "wk_ending"]])) +
+  theme(legend.title=element_blank())
+```
+
+
+
 
 
 
