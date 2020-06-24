@@ -239,7 +239,7 @@ case_growth %>%
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-pk <- c("MN")
+pk <- c("AZ")
 
 
 my_data %>% 
