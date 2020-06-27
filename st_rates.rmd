@@ -301,14 +301,14 @@ my_data %>%
   inner_join(code_names) %>% 
   inner_join(st_pop_2019) %>% 
   filter(as_of > ymd(20200331)) %>%
-  filter(reg_2 %in% c("South", "Midwest", "Northeast", "Southwest", "West Coast")) %>% 
+  filter(reg_2 %in% c("South", "Midwest", "Northeast", "Southwest")) %>% 
   ggplot(mapping = aes(x = as_of, y = us_cases_ch/pop_2019 * 1000000)) +
   # geom_smooth(linetype = 0, mapping = aes(fill = weekdays(as_of)), alpha = 0.1) +
   geom_smooth(size = 1, linetype = 1, mapping = aes(color = reg_2, fill = reg_2), span = .5, alpha = .1) +
   geom_vline(xintercept = ymd("2020-05-22") + days(5), color = "red", linetype = 2) +
   geom_vline(xintercept = ymd("2020-05-29") + days(5), color = "blue", linetype = 2) +
   theme(legend.title = element_blank()) +
-  labs(title = "After mid-May, cases fell in the North from Minnesota to Maine,\nrose on the West Coat, and rose sharply in the sun belt states\nfrom Arizona to Florida", x = NULL, y = "New COVID-19 cases per million residents", caption = "Vertical red and blue lines mark five days after the start of\nMemorial Day weekend and national protests, respectively", subtitle = str_c("Data as of ", max(my_data$as_of)))
+  labs(title = "After mid-May, cases fell in the North from Minnesota to Maine\nand rose sharply in sun belt states from Arizona to Florida", x = NULL, y = "New COVID-19 cases per million residents", caption = "Vertical red and blue lines mark five days after the start of\nMemorial Day weekend and national protests, respectively", subtitle = str_c("Data as of ", max(my_data$as_of)))
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
@@ -391,6 +391,8 @@ death_growth %>%
   ggrepel::geom_text_repel(mapping = aes(label = code)) +
   labs(x = "Weekly growth in deaths", y = "Weekly growth in cases", title = "States where the growth of deaths or new cases are falling", subtitle = str_c("As of ", death_growth[[1, "wk_ending"]])) +
   theme(legend.title=element_blank())
+
+po <- TRUE
 ```
 
 
