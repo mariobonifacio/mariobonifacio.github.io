@@ -435,7 +435,7 @@ since_100_labels <- since_100 %>%
   group_by(code) %>% 
   summarize(lab_days = max(days_in), lab_deaths = max(deaths_pm))
 
-test_code <- c("GA", "WA", "TX", "AR", "CA", "FL", "OK", "MN", "MS", "MI")
+test_code <- c("MN", "TX", "AZ", "CA", "FL", "OK", "MN", "NY")
 
 since_100 %>%
   filter(code %in% test_code) %>%
