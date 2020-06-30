@@ -182,7 +182,7 @@ my_data %>%
   inner_join(code_names) %>% 
   inner_join(st_pop_2019) %>%
   group_by(reg_2) %>% 
-  filter(code %in% c("AZ", "FL", "SC", "AL", "MS", "CA", "MN", "NY", "GA")) %>% 
+  filter(code %in% c("AZ", "FL", "SC", "AL", "MS", "CA", "MN", "NY", "GA", "TX")) %>% 
   filter(as_of > Sys.Date() - months(1)
          # ,reg_2 %in% c("Northeast", "South", "Southwest")
          ) %>%
@@ -194,7 +194,7 @@ my_data %>%
   ggplot() +
   geom_smooth(mapping = aes(x = as_of, y = case_sum, color = reg_2), alpha = .1) +
   labs(x = "state", y = "New cases per million", title = "Do the appearance of new cases align with protests?", subtitle = str_c("Data from the month ending ", case_growth$wk_ending[1], " could offer clues", sep = " ")) +
-  facet_wrap(facets = vars(reorder(code, reg_2)), nrow = 3) +
+  facet_wrap(facets = vars(reorder(code, reg_2)), nrow = 2) +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
         axis.title.x  = element_blank(),
