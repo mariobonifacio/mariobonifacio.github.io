@@ -12,18 +12,16 @@ library(data.table)
 library(tidyverse)
 ```
 
-
+Get county COVID-19 data
 
 ```{r}
 download.file("https://data.ca.gov/dataset/590188d5-8545-4c93-a9a0-e230f0db7290/resource/926fd08f-cc91-4828-af38-bd45de97f8c3/download/statewide_cases.csv", destfile = "new_data.csv")
 
 my_data <- read_csv("new_data.csv")
-
-
 ```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+Get CA county population data
+```{r}
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
-
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+download.file("http://www.dof.ca.gov/Forecasting/Demographics/Estimates/e-1/documents/E-1_2020_InternetVersion.xlsx", destfile = "pop_data.xlsx")
+```
