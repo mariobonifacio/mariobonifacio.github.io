@@ -84,6 +84,23 @@ code_names <- data.table(cbind(name = state.name,
 
 
 
+Tests & cases
+```{r}
+my_data %>% 
+  inner_join(code_names, by = "code") %>% 
+  inner_join(st_pop_2019, by = "name") %>%
+  filter(lubridate::month(as_of) == 6) %>% 
+  mutate(week_num = lubridate::week(as_of)) %>% 
+  group_by(code) %>%
+  summarize(case_growth = (max(cases) - min(cases)) / min(cases),
+            test_growth = (max(tests) - min(tests)) / min(tests)) %>% 
+  
+  ggplot(mapping = aes(x = case_growth, y = test_growth)) +
+  geom_point() +
+  geom_smooth(method = "lm", linetype = 2, alpha = 0) +
+  facet_wrap()
+```
+
 
 
 ```{r include=FALSE}
@@ -107,6 +124,20 @@ death_growth <- code_names %>%
   summarize(death_weekly_growth = round((max(death) - min(death)) / min(death), 2), death_weekly_per_mil = signif(sum(death_ch) / mean(pop_2019) * 1000000 / 2, 3), wk_ending = max(as_of)) %>% 
   arrange(desc(death_weekly_growth))
 ```
+
+
+```{r include=FALSE}
+weekly_data <- code_names %>% 
+  inner_join(st_pop_2019) %>% 
+  inner_join(my_data) %>% 
+  mutate(week_num = lubridate::week(as_of)) %>% 
+  group_by(code, week_num) %>%
+  mutate(weekly_cases = sum(case_ch),
+         weekly_deaths = sum(death_ch),
+         weekly_tests = sum(test_ch))
+  
+```
+
 
 ```{r include=FALSE}
 case_growth <- code_names %>% 
@@ -151,7 +182,8 @@ test_growth %>%
 case_growth %>%
   inner_join(code_names) %>% 
   arrange(desc(cases_weekly_per_mil)) %>% 
-  filter(cases_weekly_per_mil > quantile(case_growth$cases_weekly_per_mil, probs = 0.7)) %>% 
+  filter(cases_weekly_per_mil > quantile(case_growth$cases_weekly_per_mil, probs = 0.8) |
+           cases_weekly_per_mil < quantile(case_growth$cases_weekly_per_mil, probs = 0.2)) %>% 
   ggplot() +
   geom_col(mapping = aes(x = reorder(code, X = desc(cases_weekly_per_mil)), y = cases_weekly_per_mil, fill = reg_2)) +
   labs(x = "state", y = "Weekly cases per million residents", title = stringr::str_c("States with most new cases per million"), subtitle = str_c("2 weeks ending", case_growth$wk_ending[1], sep = " ")) +
@@ -182,7 +214,7 @@ my_data %>%
   inner_join(code_names) %>% 
   inner_join(st_pop_2019) %>%
   group_by(reg_2) %>% 
-  filter(code %in% c("AZ", "FL", "SC", "AL", "MS", "CA", "MN", "NY", "GA", "TX")) %>% 
+  # filter(code %in% c("AZ", "FL", "SC", "AL", "MS", "CA", "MN", "NY", "GA", "TX")) %>% 
   filter(as_of > Sys.Date() - months(1)
          # ,reg_2 %in% c("Northeast", "South", "Southwest")
          ) %>%
@@ -194,7 +226,7 @@ my_data %>%
   ggplot() +
   geom_smooth(mapping = aes(x = as_of, y = case_sum, color = reg_2), alpha = .1) +
   labs(x = "state", y = "New cases per million", title = "Do the appearance of new cases align with protests?", subtitle = str_c("Data from the month ending ", case_growth$wk_ending[1], " could offer clues", sep = " ")) +
-  facet_wrap(facets = vars(reorder(code, reg_2)), nrow = 2) +
+  facet_wrap(facets = vars(reorder(code, reg_2)), nrow = 5) +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
         axis.title.x  = element_blank(),
