@@ -11,11 +11,16 @@ Loading packages
 
 library(lubridate)
 library(data.table)
-library(tidyverse)
+library(tidyr)
+library(magrittr)
+library(ggplot2)
 library(dplyr)
 library(jsonlite)
 library(ggrepel)
 library(stringr)
+library(readr)
+
+
 ```
 
 
@@ -97,8 +102,7 @@ my_data %>%
   
   ggplot(mapping = aes(x = case_growth, y = test_growth)) +
   geom_point() +
-  geom_smooth(method = "lm", linetype = 2, alpha = 0) +
-  facet_wrap()
+  geom_smooth(method = "lm", linetype = 2, alpha = 0)
 ```
 
 
@@ -207,6 +211,35 @@ my_data %>%
   labs(x = "state", y = "New cases per million", title = "New cases drop sharply in the northeast while the south rises again", subtitle = str_c("Month ending", case_growth$wk_ending[1], sep = " ")) +
   theme(legend.title=element_blank())
 ```
+
+
+```{r}
+results_2016 <- read_csv("results_2016.csv")
+```
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+my_data %>% 
+  inner_join(code_names) %>% 
+  inner_join(st_pop_2019) %>%
+  inner_join(results_2016) %>% 
+  filter(between(as_of, ymd(20200601), ymd(20200630))) %>% 
+  group_by(code) %>% 
+  mutate(case_growth = 100 * (cases - min(cases, na.rm = TRUE))/ min(cases, na.rm = TRUE),
+         is_clinton = (t_mgn < 0),
+         month_growth = max(case_growth, na.rm = TRUE)) %>% 
+  ggplot() +
+  geom_smooth(mapping = aes(x = as_of, y = case_growth, color = is_clinton), alpha = .2, na.rm = TRUE) +
+  labs(x = "state", y = "Growth rate of COVID-19 cases", title = "June 2020 protests appear more likely to have occurred in states won by Trump in 2016", subtitle = "Or the growth in new cases does not align with protests", caption = "Shows rate of growth in cumulative COVID-19 cases from 1 to 30 June 2020") +
+  facet_wrap(facets = vars(reorder(code, desc(month_growth))), nrow = 5) +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        axis.title.x  = element_blank(),
+        strip.background = element_rect(fill = "lightgray"),
+        legend.position = 0)
+```
+
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
