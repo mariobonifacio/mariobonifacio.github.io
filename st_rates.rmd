@@ -228,11 +228,34 @@ my_data %>%
   group_by(code) %>% 
   mutate(case_growth = 100 * (cases - min(cases, na.rm = TRUE))/ min(cases, na.rm = TRUE),
          is_clinton = (t_mgn < 0),
-         month_growth = max(case_growth, na.rm = TRUE)) %>% 
+         month_growth = max(case_growth, na.rm = TRUE)) %>%
+  ungroup() %>% 
   ggplot() +
-  geom_smooth(mapping = aes(x = as_of, y = case_growth, color = is_clinton), alpha = .2, na.rm = TRUE) +
-  labs(x = "state", y = "Growth rate of COVID-19 cases", title = "June 2020 protests appear more likely to have occurred in states won by Trump in 2016", subtitle = "Or the growth in new cases does not align with protests", caption = "Shows rate of growth in cumulative COVID-19 cases from 1 to 30 June 2020") +
+  geom_smooth(mapping = aes(x = as_of, y = case_growth, color = is_clinton), na.rm = TRUE, span = .1) +
+  labs(x = "state", y = "Growth rate of COVID-19 cases", title = "Sun belt states saw the highest COVID-19 case growth rates in June", subtitle = "Growth rate of total COVID-19 cases from 1 to 30 June 2020 by state") +
   facet_wrap(facets = vars(reorder(code, desc(month_growth))), nrow = 5) +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        axis.title.x  = element_blank(),
+        strip.background = element_rect(fill = "lightgray"),
+        legend.position = 0)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+my_data %>% 
+  inner_join(code_names) %>% 
+  inner_join(st_pop_2019) %>%
+  inner_join(results_2016) %>% 
+  filter(between(as_of, ymd(20200601), ymd(20200630))) %>% 
+  group_by(code) %>% 
+  mutate(month_ch = (max(cases, na.rm = TRUE) - min(cases, na.rm = TRUE)) / pop_2019,
+         is_clinton = (t_mgn < 0),
+         case_sum = case_ch / pop_2019 * 1000000) %>%
+  ungroup() %>% 
+  ggplot() +
+  geom_smooth(mapping = aes(x = as_of, y = case_sum, color = is_clinton, fill = is_clinton), alpha = .1, na.rm = TRUE, span = .4) +
+  labs(x = "state", y = "New COVID-19 cases per million", title = "Sun belt states saw the most new COVID-19 cases in June", subtitle = "New COVID-19 cases per million residents per day from 1 to 30 June 2020 by state") +
+  facet_wrap(facets = vars(reorder(code, desc(month_ch))), nrow = 5) +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
         axis.title.x  = element_blank(),
