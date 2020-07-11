@@ -242,6 +242,10 @@ my_data %>%
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
+max_ch <- merge(my_data, merge(st_pop_2019, code_names, all = FALSE), all = FALSE)[between(as_of, ymd(20200601), ymd(20200630)), c("case_ch", "pop_2019", "code", "as_of")] %>%
+  .[,"case_ch_per_mil" := round(case_ch / pop_2019 * 1E6)] %>% 
+  .[case_ch_per_mil == max(case_ch_per_mil),]
+
 my_data %>% 
   inner_join(code_names) %>% 
   inner_join(st_pop_2019) %>%
@@ -250,16 +254,18 @@ my_data %>%
   group_by(code) %>% 
   mutate(month_ch = (max(cases, na.rm = TRUE) - min(cases, na.rm = TRUE)) / pop_2019,
          is_clinton = (t_mgn < 0),
-         case_sum = case_ch / pop_2019 * 1000000) %>%
+         case_sum = case_ch / pop_2019 * 1000000,
+         y_label = if_else(lubridate::mday(as_of) == 7, case_sum + 50, NULL)) %>%
   ungroup() %>% 
   ggplot() +
   geom_smooth(mapping = aes(x = as_of, y = case_sum, color = is_clinton, fill = is_clinton), alpha = .1, na.rm = TRUE, span = .4) +
-  labs(x = "state", y = "New COVID-19 cases per million", title = "Sun belt states saw the most new COVID-19 cases in June", subtitle = "New COVID-19 cases per million residents per day from 1 to 30 June 2020 by state") +
-  facet_wrap(facets = vars(reorder(code, desc(month_ch))), nrow = 5) +
+  geom_label(mapping = aes(x = as_of, y = y_label, label = code, color = is_clinton), na.rm = TRUE) +
+  labs(x = "state", y = "New daily COVID-19 cases per million residents", title = "Sun belt states saw the most new COVID-19 cases in June", subtitle = "Data from 1 to 30 June 2020 by state in order of total new June cases", caption = str_c("Max new cases per million on one day was ", max_ch[,case_ch_per_mil], " on ", max_ch$as_of[1], " in ", max_ch[, "code"], ". Multiple states reported 0 new cases on various days")) +
+  facet_wrap(facets = vars(reorder(code, desc(month_ch))), nrow = 7) +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
         axis.title.x  = element_blank(),
-        strip.background = element_rect(fill = "lightgray"),
+        strip.text.x = element_blank(),
         legend.position = 0)
 ```
 
