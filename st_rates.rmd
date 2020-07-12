@@ -94,16 +94,16 @@ Tests & cases
 my_data %>% 
   inner_join(code_names, by = "code") %>% 
   inner_join(st_pop_2019, by = "name") %>%
-  filter(lubridate::month(as_of) == 6) %>% 
+  filter(lubridate::month(as_of) >= month(Sys.Date()) - 1) %>% 
   mutate(week_num = lubridate::week(as_of)) %>% 
-  group_by(code) %>%
-  summarize(case_growth = (max(cases) - min(cases)) / min(cases),
-            test_growth = (max(tests) - min(tests)) / min(tests)) %>% 
-  
-  ggplot(mapping = aes(x = case_growth, y = test_growth)) +
-  geom_point() +
-  geom_smooth(method = "lm", linetype = 2, alpha = 0)
+  group_by(week_num) %>%
+  summarize(as_of = median(as_of), pos_rate = sum(case_ch) / sum(test_ch)) %>% 
+  ggplot(mapping = aes(x = as_of, y = pos_rate)) +
+  geom_line() +
+  geom_smooth(linetype = 2, alpha = 0)
 ```
+
+
 
 
 
@@ -213,6 +213,7 @@ my_data %>%
 ```
 
 
+Adds 2016 presidential election results
 ```{r}
 results_2016 <- read_csv("results_2016.csv")
 ```
@@ -372,14 +373,14 @@ my_data %>%
             us_cases_ch = sum(case_ch, na.rm = TRUE),
             us_deaths = sum(death, na.rm = TRUE),
             us_deaths_ch = sum(death_ch, na.rm = TRUE)) %>% 
-  filter(us_deaths > 99) %>% 
+  filter(us_deaths > 199) %>% 
   mutate(since = min(as_of),
          is_day = if_else(weekdays(as_of) == weekdays(my_data[[1,1]]), 0.3, 0.1)) %>% 
   ggplot(mapping = aes(x = as_of, y = us_cases_ch)) +
   geom_smooth(linetype = 0, mapping = aes(fill = weekdays(as_of), alpha = is_day)) +
   geom_smooth(size = 1, alpha = 0, linetype = 1, color = "black", span = .5) +
   geom_vline(xintercept = ymd(20200621), color = "dodgerblue", linetype = 2) +
-  theme(legend.position = "none") +
+  # theme(legend.position = "none") +
   labs(title = str_c("It appears as though", pk, "cases are not plateauing, let alone dropping", sep = " "), subtitle = str_c("Cases per day since", min(my_data[death_ch > 9 & code == 'OK', as_of]), sep = " "), x = NULL, y = "New COVID-19 cases by day", caption = "The vertical, dashed blue line marks the President's 21 June rally in Tulsa") +
   scale_alpha(range = c(.1, .3))
 ```
