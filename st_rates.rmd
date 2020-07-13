@@ -94,13 +94,14 @@ Tests & cases
 my_data %>% 
   inner_join(code_names, by = "code") %>% 
   inner_join(st_pop_2019, by = "name") %>%
-  filter(lubridate::month(as_of) >= month(Sys.Date()) - 1) %>% 
+  filter(as_of >= Sys.Date() - months(2)) %>% 
   mutate(week_num = lubridate::week(as_of)) %>% 
-  group_by(week_num) %>%
+  group_by(week_num, reg_2) %>%
   summarize(as_of = median(as_of), pos_rate = sum(case_ch) / sum(test_ch)) %>% 
-  ggplot(mapping = aes(x = as_of, y = pos_rate)) +
-  geom_line() +
-  geom_smooth(linetype = 2, alpha = 0)
+  ggplot(mapping = aes(x = as_of, y = pos_rate, color = reg_2, fill = reg_2)) +
+  geom_smooth(alpha = .05, span = .5) +
+  labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates are increasing in the South and Southwest") +
+  theme(legend.title = element_blank())
 ```
 
 
