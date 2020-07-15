@@ -88,26 +88,6 @@ code_names <- data.table(cbind(name = state.name,
 ```
 
 
-
-Tests & cases
-```{r}
-my_data %>% 
-  inner_join(code_names, by = "code") %>% 
-  inner_join(st_pop_2019, by = "name") %>%
-  filter(as_of >= Sys.Date() - months(2)) %>% 
-  mutate(week_num = lubridate::week(as_of)) %>% 
-  group_by(week_num, reg_2) %>%
-  summarize(as_of = median(as_of), pos_rate = sum(case_ch) / sum(test_ch)) %>% 
-  ggplot(mapping = aes(x = as_of, y = pos_rate, color = reg_2, fill = reg_2)) +
-  geom_smooth(alpha = .05, span = .5) +
-  labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates are increasing in the South and Southwest") +
-  theme(legend.title = element_blank())
-```
-
-
-
-
-
 ```{r include=FALSE}
 test_growth <- code_names %>% 
   inner_join(st_pop_2019) %>% 
@@ -170,6 +150,54 @@ test_growth %>%
 ```
 
 
+Tests & cases
+```{r warning=FALSE}
+my_data %>% 
+  inner_join(code_names, by = "code") %>% 
+  inner_join(st_pop_2019, by = "name") %>%
+  filter(as_of >= Sys.Date() - months(2)) %>% 
+  mutate(week_num = lubridate::week(as_of)) %>% 
+  group_by(week_num, reg_2) %>%
+  summarize(as_of = median(as_of), pos_rate = sum(case_ch) / sum(test_ch)) %>% 
+  ggplot(mapping = aes(x = as_of, y = pos_rate, color = reg_2, fill = reg_2)) +
+  geom_smooth(alpha = .1, span = .5) +
+  labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates are increasing in the South and Southwest", subtitle = str_c("As of ", max(my_data$as_of))) +
+  theme(legend.title = element_blank())
+```
+
+
+
+Tests & cases
+```{r warning=FALSE}
+my_data %>% 
+  inner_join(code_names, by = "code") %>% 
+  inner_join(st_pop_2019, by = "name") %>%
+  filter(as_of >= Sys.Date() - months(1)) %>% 
+  mutate(week_num = lubridate::week(as_of)) %>% 
+  group_by(week_num, code) %>%
+  summarize(pos_rate = sum(case_ch) / sum(test_ch),
+            as_of = median(as_of)) %>% 
+  group_by(code) %>% 
+  mutate(y_label = if_else(as_of == median(as_of), median(pos_rate), NULL),
+         month_pos = mean(pos_rate, na.rm = TRUE)) %>% 
+  ggplot(mapping = aes(x = as_of, y = pos_rate)) +
+  geom_smooth(alpha = 0, span = .6) +
+  geom_label(mapping = aes(x = as_of, y = y_label, label = code), na.rm = TRUE) +
+  labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates are increasing in some states", subtitle = str_c(lubridate::floor_date(Sys.Date() - months(2), unit = "month"), " through ", max(my_data$as_of), "; Ordered by highest positive rate for the month")) +
+  theme(legend.title = element_blank()) +
+  facet_wrap(facets = vars(reorder(code, desc(month_pos))), nrow = 5) +
+    theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        axis.title.x  = element_blank(),
+        strip.text.x = element_blank(),
+        legend.position = 0)
+```
+
+
+
+
+
+
 ```{r echo=FALSE}
 test_growth %>%
   inner_join(code_names, by = "code") %>%
@@ -206,10 +234,10 @@ my_data %>%
   # wday(as_of) == wday(max(as_of)),
   ungroup() %>% 
   group_by(reg_2, as_of) %>% 
-  summarize(case_sum = sum(case_ch) / sum(pop_2019) * 1000000) %>% 
+  summarize(case_sum = sum(case_ch) / sum(pop_2019) * 1000000) %>%
   ggplot() +
   geom_smooth(mapping = aes(x = as_of, y = case_sum, color = reg_2, fill = reg_2), alpha = .1) +
-  labs(x = "state", y = "New cases per million", title = "New cases drop sharply in the northeast while the south rises again", subtitle = str_c("Month ending", case_growth$wk_ending[1], sep = " ")) +
+  labs(x = "Date", y = "New cases per million", title = "New cases drop sharply in the northeast while the south rises again", subtitle = str_c("Month ending ", case_growth$wk_ending[1])) +
   theme(legend.title=element_blank())
 ```
 
