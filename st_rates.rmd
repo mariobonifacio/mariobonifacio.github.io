@@ -178,18 +178,18 @@ my_data %>%
   summarize(pos_rate = sum(case_ch) / sum(test_ch),
             as_of = median(as_of)) %>% 
   group_by(code) %>% 
-  mutate(y_label = if_else(as_of == median(as_of), median(pos_rate), NULL),
+  mutate(y_label = if_else(as_of == median(as_of, na.rm = TRUE), median(pos_rate, na.rm = TRUE), NULL),
          month_pos = mean(pos_rate, na.rm = TRUE)) %>% 
   ggplot(mapping = aes(x = as_of, y = pos_rate)) +
   geom_smooth(alpha = 0, span = .6) +
-  geom_label(mapping = aes(x = as_of, y = y_label, label = code), na.rm = TRUE) +
-  labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates are increasing in some states", subtitle = str_c(lubridate::floor_date(Sys.Date() - months(2), unit = "month"), " through ", max(my_data$as_of), "; Ordered by highest positive rate for the month")) +
+  geom_label(mapping = aes(y = y_label, label = code), na.rm = TRUE) +
+  labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates are increasing in some states", subtitle = str_c(Sys.Date() - months(1), " through ", max(my_data$as_of), "; Ordered by highest positive rate for the month")) +
   theme(legend.title = element_blank()) +
   facet_wrap(facets = vars(reorder(code, desc(month_pos))), nrow = 5) +
     theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
         axis.title.x  = element_blank(),
-        strip.text.x = element_blank(),
+        # strip.text.x = element_blank(),
         legend.position = 0)
 ```
 
