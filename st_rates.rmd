@@ -179,7 +179,8 @@ my_data %>%
             as_of = median(as_of)) %>% 
   group_by(code) %>% 
   mutate(y_label = if_else(as_of == median(as_of, na.rm = TRUE), median(pos_rate, na.rm = TRUE), NULL),
-         month_pos = mean(pos_rate, na.rm = TRUE)) %>% 
+         month_pos = mean(pos_rate, na.rm = TRUE),
+         ) %>% 
   ggplot(mapping = aes(x = as_of, y = pos_rate)) +
   geom_smooth(alpha = 0, span = .6) +
   geom_label(mapping = aes(y = y_label, label = code), na.rm = TRUE) +
