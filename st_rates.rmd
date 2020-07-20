@@ -160,8 +160,8 @@ my_data %>%
   group_by(week_num, reg_2) %>%
   summarize(as_of = median(as_of), pos_rate = sum(case_ch) / sum(test_ch)) %>% 
   ggplot(mapping = aes(x = as_of, y = pos_rate, color = reg_2, fill = reg_2)) +
-  geom_smooth(alpha = .1, span = .5) +
-  labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates are increasing in the South and Southwest", subtitle = str_c("As of ", max(my_data$as_of))) +
+  geom_smooth(alpha = .05, span = .5) +
+  labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates are increasing in the South and Southwest", subtitle = str_c("Two months ending  ", max(my_data$as_of))) +
   theme(legend.title = element_blank())
 ```
 
@@ -385,7 +385,7 @@ my_data %>%
   geom_smooth(linetype = 0, mapping = aes(fill = weekdays(as_of), alpha = is_day)) +
   geom_smooth(size = 1, alpha = 0, linetype = 2, color = "black") +
   geom_vline(xintercept = ymd(20200526) + days(5)) +
-  theme(legend.position = "none") +
+  # theme(legend.position = "none") +
   labs(title = str_c("Are", pk, "deaths plateauing or even dropping?", sep = " "), subtitle = str_c("Deaths per day since", min(my_data[code %in% pk, as_of]), sep = " "), x = NULL, y = "COVID-19 daily deaths") +
   scale_alpha(range = c(.1, .3))
 ```
@@ -397,13 +397,14 @@ pk <- c("OK")
 
 my_data %>% 
   filter(code %in% pk) %>%
-    mutate(case_ch = as.double(case_ch)) %>% 
+  mutate(case_ch = as.double(case_ch)) %>%
   group_by(as_of) %>%
   summarize(us_cases = sum(cases, na.rm = TRUE),
             us_cases_ch = sum(case_ch, na.rm = TRUE),
             us_deaths = sum(death, na.rm = TRUE),
             us_deaths_ch = sum(death_ch, na.rm = TRUE)) %>% 
-  filter(us_deaths > 199) %>% 
+  filter(us_deaths > 199,
+         weekdays(as_of) %in% c("Sunday", "Wednesday")) %>% 
   mutate(since = min(as_of),
          is_day = if_else(weekdays(as_of) == weekdays(my_data[[1,1]]), 0.3, 0.1)) %>% 
   ggplot(mapping = aes(x = as_of, y = us_cases_ch)) +
