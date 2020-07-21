@@ -408,7 +408,7 @@ my_data %>%
   mutate(since = min(as_of),
          is_day = if_else(weekdays(as_of) == weekdays(my_data[[1,1]]), 0.3, 0.1)) %>% 
   ggplot(mapping = aes(x = as_of, y = us_cases_ch)) +
-  geom_smooth(linetype = 0, mapping = aes(fill = weekdays(as_of), alpha = is_day)) +
+  geom_smooth(linetype = 1, mapping = aes(fill = weekdays(as_of), alpha = is_day)) +
   geom_smooth(size = 1, alpha = 0, linetype = 1, color = "black", span = .5) +
   geom_vline(xintercept = ymd(20200621), color = "dodgerblue", linetype = 2) +
   # theme(legend.position = "none") +
