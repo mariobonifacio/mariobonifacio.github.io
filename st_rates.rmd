@@ -430,7 +430,7 @@ my_data %>%
   inner_join(code_names) %>% 
   inner_join(st_pop_2019) %>% 
   filter(as_of > ymd(20200331)) %>%
-  filter(reg_2 %in% c("South", "Midwest", "Northeast", "Southwest")) %>% 
+  # filter(reg_2 %in% c("South", "Midwest", "Northeast", "Southwest")) %>% 
   ggplot(mapping = aes(x = as_of, y = us_cases_ch/pop_2019 * 1000000)) +
   # geom_smooth(linetype = 0, mapping = aes(fill = weekdays(as_of)), alpha = 0.1) +
   geom_smooth(size = 1, linetype = 1, mapping = aes(color = reg_2, fill = reg_2), span = .5, alpha = .1) +
