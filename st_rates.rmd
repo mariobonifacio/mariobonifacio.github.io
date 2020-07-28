@@ -166,6 +166,22 @@ my_data %>%
 ```
 
 
+Tests & cases
+```{r warning=FALSE}
+my_data %>% 
+  inner_join(code_names, by = "code") %>% 
+  inner_join(st_pop_2019, by = "name") %>%
+  filter(as_of >= Sys.Date() - months(2)) %>% 
+  mutate(week_num = lubridate::week(as_of)) %>% 
+  group_by(week_num, reg_2) %>%
+  summarize(as_of = median(as_of), pos_rate = sum(case_ch) / sum(test_ch)) %>% 
+  ggplot(mapping = aes(x = as_of, y = pos_rate, color = reg_2, fill = reg_2)) +
+  geom_smooth(alpha = .05, span = .5) +
+  labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates are increasing in the South and Southwest", subtitle = str_c("Two months ending  ", max(my_data$as_of))) +
+  theme(legend.title = element_blank())
+```
+
+
 
 Tests & cases
 ```{r warning=FALSE}
@@ -362,6 +378,28 @@ case_growth %>%
   labs(x = "Weekly case growth rate", y = "Weekly new cases per million", title = "Cases over the past week per million and growth in cases",
        subtitle = "Shows states having a hard time now and those who may face hard times soon") +
   theme(legend.title=element_blank())
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+my_data %>% 
+  filter(as_of >= ymd(20200701)) %>% 
+  group_by(as_of) %>%
+  summarize(us_cases = sum(cases, na.rm = TRUE),
+            us_cases_ch = sum(case_ch, na.rm = TRUE),
+            us_deaths = sum(death, na.rm = TRUE),
+            us_deaths_ch = sum(death_ch, na.rm = TRUE)) %>% 
+  mutate(since = min(as_of),
+         casesch_pre = if_else(as_of <= ymd(20200716), us_cases_ch, NULL),
+         casesch_post = if_else(as_of >= ymd(20200716), us_cases_ch, NULL)) %>% 
+  ggplot(mapping = aes(x = as_of)) +
+  geom_smooth(mapping = aes(y = casesch_pre, color = weekdays(as_of)), na.rm = TRUE, method = 'lm', linetype = 'dotted', alpha = 0) +
+  geom_smooth(mapping = aes(y = casesch_post, color = weekdays(as_of)), na.rm = TRUE, method = 'lm', linetype = 'dotted') +
+  geom_point(mapping = aes(y = us_cases_ch), na.rm = TRUE) +
+  geom_vline(xintercept = ymd(20200716), linetype = 'dashed') +
+  theme(legend.position = "none") +
+  labs(title = "How did new cases change when CDC stopped reporting on 16 July?", subtitle = "New U.S. cases per day since 1 July", x = NULL, y = "COVID-19 daily cases")
 ```
 
 
