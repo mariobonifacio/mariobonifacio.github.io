@@ -155,6 +155,25 @@ Tests & cases
 my_data %>% 
   inner_join(code_names, by = "code") %>% 
   inner_join(st_pop_2019, by = "name") %>%
+  filter(as_of >= Sys.Date() - months(1)) %>% 
+  mutate(week_num = lubridate::week(as_of)) %>% 
+  group_by(code) %>%
+  summarize(pos_rate = sum(case_ch) / sum(test_ch), reg_2 = min(reg_2)) %>% 
+  ggplot(mapping = aes(x = code, y = pos_rate)) +
+  geom_col() +
+  geom_label(mapping = aes(label = code)) +
+  labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates are increasing in the South and Southwest", subtitle = str_c("Two months ending  ", max(my_data$as_of))) +
+  theme(legend.title = element_blank(), axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
+  facet_wrap(facets = vars(reg_2), nrow = 3)
+```
+
+
+
+Tests & cases
+```{r warning=FALSE}
+my_data %>% 
+  inner_join(code_names, by = "code") %>% 
+  inner_join(st_pop_2019, by = "name") %>%
   filter(as_of >= Sys.Date() - months(2)) %>% 
   mutate(week_num = lubridate::week(as_of)) %>% 
   group_by(week_num, reg_2) %>%
@@ -174,10 +193,11 @@ my_data %>%
   filter(as_of >= Sys.Date() - months(2)) %>% 
   mutate(week_num = lubridate::week(as_of)) %>% 
   group_by(week_num, reg_2) %>%
-  summarize(as_of = median(as_of), pos_rate = sum(case_ch) / sum(test_ch)) %>% 
-  ggplot(mapping = aes(x = as_of, y = pos_rate, color = reg_2, fill = reg_2)) +
-  geom_smooth(alpha = .05, span = .5) +
-  labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates are increasing in the South and Southwest", subtitle = str_c("Two months ending  ", max(my_data$as_of))) +
+  summarize(as_of = median(as_of), pos_rate = sum(case_ch) / sum(test_ch), wk_test = sum(test_ch)) %>% 
+  ggplot(mapping = aes(x = as_of, y = pos_rate, color = reg_2, fill = reg_2, alpha = wk_test)) +
+  geom_smooth(span = .5) +
+  geom_line() +
+  labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates remain high in the South and Southwest", subtitle = str_c("Two months ending  ", max(my_data$as_of))) +
   theme(legend.title = element_blank())
 ```
 
@@ -200,7 +220,7 @@ my_data %>%
   ggplot(mapping = aes(x = as_of, y = pos_rate)) +
   geom_smooth(alpha = 0, span = .6) +
   geom_label(mapping = aes(y = y_label, label = code), na.rm = TRUE) +
-  labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates are increasing in some states", subtitle = str_c(Sys.Date() - months(1), " through ", max(my_data$as_of), "; Ordered by highest positive rate for the month")) +
+  labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates remain high in some states", subtitle = str_c(Sys.Date() - months(1), " through ", max(my_data$as_of), "; Ordered by highest positive rate for the month")) +
   theme(legend.title = element_blank()) +
   facet_wrap(facets = vars(reorder(code, desc(month_pos))), nrow = 5) +
     theme(axis.text = element_blank(),
@@ -384,7 +404,7 @@ case_growth %>%
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
 my_data %>% 
-  filter(as_of >= ymd(20200701)) %>% 
+  filter(as_of >= ymd(20200616)) %>% 
   group_by(as_of) %>%
   summarize(us_cases = sum(cases, na.rm = TRUE),
             us_cases_ch = sum(case_ch, na.rm = TRUE),
@@ -399,7 +419,8 @@ my_data %>%
   geom_point(mapping = aes(y = us_cases_ch), na.rm = TRUE) +
   geom_vline(xintercept = ymd(20200716), linetype = 'dashed') +
   theme(legend.position = "none") +
-  labs(title = "How did new cases change when CDC stopped reporting on 16 July?", subtitle = "New U.S. cases per day since 1 July", x = NULL, y = "COVID-19 daily cases")
+  labs(title = "Did case growth change when reporting switched from CDC to HHS on 16 July?", subtitle = "New U.S. cases per day since 1 July", x = NULL, y = "COVID-19 daily cases") +
+  ylim(0, 80000)
 ```
 
 
@@ -423,7 +444,7 @@ my_data %>%
   geom_smooth(linetype = 0, mapping = aes(fill = weekdays(as_of), alpha = is_day)) +
   geom_smooth(size = 1, alpha = 0, linetype = 2, color = "black") +
   geom_vline(xintercept = ymd(20200526) + days(5)) +
-  # theme(legend.position = "none") +
+  theme(legend.position = "none") +
   labs(title = str_c("Are", pk, "deaths plateauing or even dropping?", sep = " "), subtitle = str_c("Deaths per day since", min(my_data[code %in% pk, as_of]), sep = " "), x = NULL, y = "COVID-19 daily deaths") +
   scale_alpha(range = c(.1, .3))
 ```
