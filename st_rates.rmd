@@ -163,8 +163,7 @@ my_data %>%
   geom_col() +
   geom_label(mapping = aes(label = code)) +
   labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates are increasing in the South and Southwest", subtitle = str_c("Two months ending  ", max(my_data$as_of))) +
-  theme(legend.title = element_blank(), axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
-  facet_wrap(facets = vars(reg_2), nrow = 3)
+  theme(legend.title = element_blank(), axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
 
 
@@ -220,14 +219,15 @@ my_data %>%
   ggplot(mapping = aes(x = as_of, y = pos_rate)) +
   geom_smooth(alpha = 0, span = .6) +
   geom_label(mapping = aes(y = y_label, label = code), na.rm = TRUE) +
-  labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates remain high in some states", subtitle = str_c(Sys.Date() - months(1), " through ", max(my_data$as_of), "; Ordered by highest positive rate for the month")) +
-  theme(legend.title = element_blank()) +
-  facet_wrap(facets = vars(reorder(code, desc(month_pos))), nrow = 5) +
-    theme(axis.text = element_blank(),
-        axis.ticks = element_blank(),
-        axis.title.x  = element_blank(),
-        # strip.text.x = element_blank(),
-        legend.position = 0)
+  labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates remain high in some states", subtitle = str_c(Sys.Date() - months(1), " through ", max(my_data$as_of), "; Ordered by highest positive rate for the month"))
+# +
+#   theme(legend.title = element_blank()) +
+#  facet_wrap(facets = vars(reorder(code, desc(month_pos))), nrow = 5) +
+#    theme(axis.text = element_blank(),
+#        axis.ticks = element_blank(),
+#  axis.title.x  = element_blank(),
+# strip.text.x = element_blank(),
+# legend.position = 0)
 ```
 
 
@@ -354,13 +354,14 @@ my_data %>%
   mutate(reg_2 = factor(reg_2, levels = c("Middle South", "Midwest", "Northeast", "Plain and Mountain", "South", "Southwest", "West Coast"))) %>% 
   ggplot() +
   geom_smooth(mapping = aes(x = as_of, y = case_sum, color = reg_2), alpha = .1) +
-  labs(x = "state", y = "New cases per million", title = "Do the appearance of new cases align with protests?", subtitle = str_c("Data from the month ending ", case_growth$wk_ending[1], " could offer clues", sep = " ")) +
-  facet_wrap(facets = vars(reorder(code, reg_2)), nrow = 5) +
-  theme(axis.text = element_blank(),
-        axis.ticks = element_blank(),
-        axis.title.x  = element_blank(),
-        strip.background = element_rect(fill = "lightgray"),
-        legend.title = element_blank())
+  labs(x = "state", y = "New cases per million", title = "Do the appearance of new cases align with protests?", subtitle = str_c("Data from the month ending ", case_growth$wk_ending[1], " could offer clues", sep = " "))
+# +
+#  facet_wrap(facets = vars(reorder(code, reg_2)), nrow = 5) +
+#  theme(axis.text = element_blank(),
+#        axis.ticks = element_blank(),
+#        axis.title.x  = element_blank(),
+#        strip.background = element_rect(fill = "lightgray"),
+#        legend.title = element_blank())
 ```
 
 
