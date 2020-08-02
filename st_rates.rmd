@@ -416,11 +416,15 @@ my_data %>%
          casesch_post = if_else(as_of >= ymd(20200716), us_cases_ch, NULL)) %>% 
   ggplot(mapping = aes(x = as_of)) +
   geom_smooth(mapping = aes(y = casesch_pre, color = weekdays(as_of)), na.rm = TRUE, method = 'lm', linetype = 'dotted', alpha = 0) +
-  geom_smooth(mapping = aes(y = casesch_post, color = weekdays(as_of)), na.rm = TRUE, method = 'lm', linetype = 'dotted') +
+  geom_smooth(mapping = aes(y = casesch_post, color = weekdays(as_of)), na.rm = TRUE, method = 'lm', linetype = 'dotted', alpha = 0) +
+  
+  geom_smooth(mapping = aes(y = casesch_pre), na.rm = TRUE, method = 'lm', linetype = 'dotted', alpha = 0.5) +
+  geom_smooth(mapping = aes(y = casesch_post), na.rm = TRUE, method = 'lm', linetype = 'dotted', alpha = 0.5) +
+  
   geom_point(mapping = aes(y = us_cases_ch), na.rm = TRUE) +
   geom_vline(xintercept = ymd(20200716), linetype = 'dashed') +
   theme(legend.position = "none") +
-  labs(title = "Did case growth change when reporting switched from CDC to HHS on 16 July?", subtitle = "New U.S. cases per day since 1 July", x = NULL, y = "COVID-19 daily cases") +
+  labs(title = "Did case growth change when HHS took over reporting from CDC on 16 July?", subtitle = "New U.S. cases per day since 1 July using state data", x = NULL, y = "COVID-19 daily cases") +
   ylim(0, 80000)
 ```
 
