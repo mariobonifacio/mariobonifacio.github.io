@@ -402,7 +402,7 @@ case_growth %>%
 ```
 
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE].\
 
 my_data %>% 
   filter(as_of >= ymd(20200616)) %>% 
