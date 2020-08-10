@@ -525,22 +525,24 @@ my_data %>%
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-pk <- c("NY", "NJ", "MA", "MI", "CT", "RI", "CA")
+pk <- c("NY", "NJ", "MA", "MI", "CT", "RI", "NH", "VT", "ME", "CA", "OR", "WA")
 
 my_data %>% 
-  filter(!(code %in% (pk))) %>% 
-  group_by(as_of) %>%
-  summarize(us_cases = sum(cases, na.rm = TRUE),
-            us_cases_ch = sum(case_ch, na.rm = TRUE),
-            us_deaths = sum(death, na.rm = TRUE),
-            us_deaths_ch = sum(death_ch, na.rm = TRUE)) %>% 
-  filter(us_cases > 99) %>%
+  inner_join(code_names) %>% 
+  inner_join(st_pop_2019) %>% 
+  mutate(noreast = if_else(code %in% (pk), "Northeastern states", "All other states")) %>% 
+  group_by(noreast, as_of) %>%
+  summarize(us_cases = sum(cases, na.rm = TRUE) / sum(pop_2019, na.rm = TRUE),
+            us_cases_ch = sum(case_ch, na.rm = TRUE) / sum(pop_2019, na.rm = TRUE),
+            us_deaths = sum(death, na.rm = TRUE) / sum(pop_2019, na.rm = TRUE),
+            us_deaths_ch = sum(death_ch, na.rm = TRUE) / sum(pop_2019, na.rm = TRUE)) %>% 
+  filter(us_cases > .000009) %>%
   mutate(since = min(as_of)) %>% 
-  ggplot(mapping = aes(x = as_of, y = us_cases_ch)) +
-  geom_smooth(linetype = 0, alpha = .2, mapping = aes(fill = weekdays(as_of))) +
-  geom_smooth(alpha = 0, size = 1, linetype = 2, color = "black") +
+  ggplot(mapping = aes(x = as_of, y = us_cases_ch, color = noreast)) +
+  geom_smooth(linetype = 0, alpha = .1, mapping = aes(fill = weekdays(as_of)), span = .05) +
+  geom_smooth(alpha = 0, size = 1, linetype = 2) +
   theme(legend.position = "none") +
-  labs(title = str_c("Are non-", str_c(pk, collapse = ", "), " cases plateauing or even dropping?", sep = ""), subtitle = "Cases since the 100th case", x = "date", y = "COVID-19 new cases")
+  labs(title = str_c("How do ", str_c(pk, collapse = ", "), " compare to other states?", sep = ""), subtitle = "Cases since the 100th case", x = "date", y = "COVID-19 new cases")
 ```
 
 
