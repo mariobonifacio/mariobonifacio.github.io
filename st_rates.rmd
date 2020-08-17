@@ -160,7 +160,7 @@ my_data %>%
   group_by(code) %>%
   summarize(pos_rate = sum(case_ch) / sum(test_ch), reg_2 = min(reg_2)) %>% 
   mutate(pos_rate = if_else(pos_rate < 0, 0, pos_rate)) %>% 
-  filter(pos_rate < 0.5 | pos_rate > 0.15) %>% 
+  filter(pos_rate < 0.05 | pos_rate > 0.10) %>% 
   ggplot(mapping = aes(x = reorder(code, pos_rate), y = pos_rate, fill = reg_2)) +
   geom_col() +
   geom_label(mapping = aes(label = code)) +
@@ -498,8 +498,7 @@ my_data %>%
             us_cases_ch = sum(case_ch, na.rm = TRUE),
             us_deaths = sum(death, na.rm = TRUE),
             us_deaths_ch = sum(death_ch, na.rm = TRUE)) %>% 
-  filter(us_deaths > 199,
-         weekdays(as_of) %in% c("Sunday", "Wednesday")) %>% 
+  filter(us_deaths > 9) %>% 
   mutate(since = min(as_of),
          is_day = if_else(weekdays(as_of) == weekdays(my_data[[1,1]]), 0.3, 0.1)) %>% 
   ggplot(mapping = aes(x = as_of, y = us_cases_ch)) +
