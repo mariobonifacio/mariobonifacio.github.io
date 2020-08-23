@@ -1,0 +1,13 @@
+age_group,type,share
+18-34,"excuse absentee",0.10
+35-64,"excuse absentee",0.10
+65+,"excuse absentee",0.17
+18-34,"no excuse absentee",0.15
+35-64,"no excuse absentee",0.14
+65+,"no excuse absentee",0.27
+18-34,"permanent absentee",0.30
+35-64,"permanent absentee",0.31
+65+,"permanent absentee",0.39
+18-34,"absentee only",0.83
+35-64,"absentee only",0.88
+65+,"absentee only",0.92
