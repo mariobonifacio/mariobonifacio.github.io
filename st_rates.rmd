@@ -587,11 +587,12 @@ my_data %>%
             us_deaths_ch = sum(death_ch, na.rm = TRUE) / sum(pop_2019, na.rm = TRUE)) %>% 
   filter(us_cases > .000009) %>%
   mutate(since = min(as_of)) %>% 
-  ggplot(mapping = aes(x = as_of, y = us_deaths_ch, color = noreast)) +
-  geom_smooth(linetype = 0, alpha = .05, mapping = aes(fill = weekdays(as_of))) +
-  geom_smooth(alpha = 0, size = 1, linetype = 2) +
+  ggplot(mapping = aes(x = as_of, y = us_deaths_ch)) +
+  geom_smooth(linetype = 0, alpha = .05, mapping = aes(fill = weekdays(as_of), color = noreast)) +
+  geom_smooth(alpha = 0, size = 1, linetype = 2, mapping = aes(color = noreast)) +
+  geom_smooth(color = "black") +
   theme(legend.position = "none") +
-  labs(title = str_c(str_c(pk, collapse = ", "), " have switched w/others", sep = ""), subtitle = "Deaths per million since one case in 100,000 population had been confirmed", x = "date", y = "COVID-19 new cases")
+  labs(title = str_c(str_c(pk, collapse = ", "), " have switched w/others", sep = ""), subtitle = "Deaths per million since 10 cases per million", x = "date", y = "COVID-19 deaths")
 ```
 
 
