@@ -230,13 +230,16 @@ my_data %>%
   mutate(week_num = lubridate::week(as_of)) %>% 
   group_by(week_num, code) %>%
   summarize(pos_rate = sum(case_ch) / sum(test_ch),
-            as_of = median(as_of)) %>% 
-  group_by(code) %>% 
-  mutate(y_label = if_else(as_of == median(as_of, na.rm = TRUE), median(pos_rate, na.rm = TRUE), NULL),
-         month_pos = mean(pos_rate, na.rm = TRUE),
-         ) %>% 
+            as_of = median(as_of),
+            reg_2 = mode(reg_2)) %>% 
+  group_by(code, week_num) %>% 
+  mutate(y_label = if_else(as_of == median(as_of, na.rm = TRUE),
+                           median(pos_rate, na.rm = TRUE),
+                           NULL),
+         month_pos = mean(pos_rate, na.rm = TRUE)) %>% 
+  ungroup() %>% 
   ggplot(mapping = aes(x = as_of, y = pos_rate)) +
-  geom_smooth(alpha = 0, span = .6) +
+  geom_smooth(alpha = 0, span = .6, mapping = aes(color = reg_2)) +
   geom_label(mapping = aes(y = y_label, label = code), na.rm = TRUE) +
   labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates remain high in some states", subtitle = str_c(Sys.Date() - months(1), " through ", max(my_data$as_of), "; Ordered by highest positive rate for the month"))
 # +
