@@ -273,11 +273,15 @@ test_growth %>%
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 case_growth %>%
   inner_join(code_names) %>% 
+  inner_join(my_data) %>% 
   arrange(desc(cases_weekly_per_mil)) %>% 
   filter(cases_weekly_per_mil > quantile(case_growth$cases_weekly_per_mil, probs = 0.8, na.rm = TRUE) |
            cases_weekly_per_mil < quantile(case_growth$cases_weekly_per_mil, probs = 0.2, na.rm = TRUE)) %>% 
+  group_by(code) %>% 
+  mutate(pos_rate = sum(case_ch) / sum(test_ch)) %>% 
+  ungroup() %>% 
   ggplot() +
-  geom_col(mapping = aes(x = reorder(code, X = desc(cases_weekly_per_mil)), y = cases_weekly_per_mil, fill = reg_2)) +
+  geom_col(mapping = aes(x = reorder(code, X = desc(cases_weekly_per_mil)), fill = pos_rate, y = cases_weekly_per_mil)) +
   labs(x = "state", y = "Weekly cases per million residents", title = stringr::str_c("States with most new cases per million"), subtitle = str_c("2 weeks ending", case_growth$wk_ending[1], sep = " ")) +
   theme(legend.title=element_blank())
 ```
