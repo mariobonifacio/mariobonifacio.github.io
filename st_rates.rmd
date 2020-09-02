@@ -294,7 +294,7 @@ death_growth %>%
            death_weekly_per_mil < quantile(death_growth$death_weekly_per_mil, probs = 0.2, na.rm = TRUE)) %>% 
   ggplot() +
   geom_col(mapping = aes(x = reorder(code, X = desc(death_weekly_per_mil)), y = death_weekly_per_mil, fill = reg_2)) +
-  labs(x = "state", y = "Weekly deaths per million residents", title = stringr::str_c("States with most deaths per million"), subtitle = str_c("2 weeks ending", case_growth$wk_ending[1], sep = " ")) +
+  labs(x = "state", y = "Weekly deaths per million residents", title = stringr::str_c("States with most & fewest deaths per million"), subtitle = str_c("2 weeks ending", case_growth$wk_ending[1], sep = " ")) +
   theme(legend.title=element_blank())
 ```
 
