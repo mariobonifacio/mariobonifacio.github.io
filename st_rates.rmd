@@ -298,6 +298,9 @@ death_growth %>%
   theme(legend.title=element_blank())
 ```
 
+
+
+
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
 
@@ -706,6 +709,18 @@ since_100 %>%
   theme(legend.title=element_blank())
   
 
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+since_100 %>%
+  filter(as_of == max(as_of),
+         deaths_pm > 500 | deaths_pm < 100) %>% 
+  arrange(desc(deaths_pm)) %>% 
+  ggplot() +
+  geom_col(mapping = aes(x = reorder(code, X = desc(deaths_pm)), y = deaths_pm, fill = reg_2, alpha = death_ch)) +
+  labs(x = "state", y = "Weekly deaths per million residents", title = stringr::str_c("States with most & fewest deaths per million"), subtitle = str_c("2 weeks ending", case_growth$wk_ending[1], sep = " ")) +
+  theme(legend.title=element_blank())
 ```
 
 
