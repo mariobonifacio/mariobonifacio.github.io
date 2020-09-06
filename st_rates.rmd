@@ -763,7 +763,26 @@ since_100 %>%
   
 ```
 
-```{r}
 
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+my_data %>% 
+  inner_join(code_names) %>% 
+  inner_join(st_pop_2019) %>%
+  inner_join(results_2016) %>% 
+  filter(between(as_of, ymd(20200823), ymd(20200901))) %>% 
+  group_by(code) %>% 
+  mutate(new_cases = (max(cases, na.rm = TRUE) - min(cases, na.rm = TRUE)) / pop_2019 * 1000000,
+         is_clinton = (median(t_mgn, na.rm = TRUE) < 0),
+         case_ch_pm = case_ch / pop_2019 * 1000000) %>% 
+  ungroup() %>% 
+  ggplot() +
+  geom_smooth(mapping = aes(x = as_of, y = case_ch_pm, color = is_clinton), na.rm = TRUE, span = .5) +
+  labs(x = "state", y = "New COVID-19 cases per million per day", title = "The Dakotas led the nation in new cases per million after Sturgis", subtitle = "Total new COVID-19 cases per million from 23 to 31 Aug 2020 by state") +
+  facet_wrap(facets = vars(reorder(code, desc(new_cases))), nrow = 5) +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        axis.title.x  = element_blank(),
+        strip.background = element_rect(fill = "lightgray"),
+        legend.position = 0)
 ```
 
