@@ -628,8 +628,8 @@ top_n(death_growth, n = 20) %>%
 death_growth %>%
   inner_join(case_growth) %>%
   inner_join(code_names) %>% 
-  filter((death_weekly_growth > 0) |
-           (cases_weekly_growth > 0)) %>% 
+  filter((death_weekly_growth > 0.05) |
+           (cases_weekly_growth > 0.05)) %>% 
   ggplot(mapping = aes(x = death_weekly_growth, y = cases_weekly_growth, color = reg_2)) +
   ggrepel::geom_text_repel(mapping = aes(label = code)) +
   labs(x = "Weekly growth in deaths", y = "Weekly growth in cases", title = "States where the growth of deaths or new cases are rising", subtitle = str_c("As of ", death_growth[[1, "wk_ending"]])) +
@@ -642,14 +642,12 @@ death_growth %>%
 death_growth %>%
   inner_join(case_growth) %>%
   inner_join(code_names) %>% 
-  filter((death_weekly_growth <= 0) |
-           (cases_weekly_growth <= 0)) %>% 
+  filter((death_weekly_growth <= 0.025) |
+           (cases_weekly_growth <= 0.025)) %>% 
   ggplot(mapping = aes(x = death_weekly_growth, y = cases_weekly_growth, color = reg_2)) +
-  ggrepel::geom_text_repel(mapping = aes(label = code)) +
-  labs(x = "Weekly growth in deaths", y = "Weekly growth in cases", title = "States where the growth of deaths or new cases are falling", subtitle = str_c("As of ", death_growth[[1, "wk_ending"]])) +
+  ggrepel::geom_label_repel(mapping = aes(label = code)) +
+  labs(x = "Weekly growth in deaths", y = "Weekly growth in cases", title = "States where new deaths or cases are flat or falling", subtitle = str_c("Two weeks ending ", death_growth[[1, "wk_ending"]])) +
   theme(legend.title=element_blank())
-
-po <- TRUE
 ```
 
 
@@ -769,7 +767,7 @@ my_data %>%
   inner_join(code_names) %>% 
   inner_join(st_pop_2019) %>%
   inner_join(results_2016) %>% 
-  filter(between(as_of, ymd(20200823), ymd(20200901))) %>% 
+  filter(between(as_of, ymd(20200724), ymd(20200807))) %>% 
   group_by(code) %>% 
   mutate(new_cases = (max(cases, na.rm = TRUE) - min(cases, na.rm = TRUE)) / pop_2019 * 1000000,
          is_clinton = (median(t_mgn, na.rm = TRUE) < 0),
@@ -786,3 +784,26 @@ my_data %>%
         legend.position = 0)
 ```
 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+pk <- c("SD")
+
+my_data %>% 
+  inner_join(code_names) %>% 
+  inner_join(st_pop_2019) %>% 
+  mutate(sub_group = if_else(code %in% (pk), "So. Dakota", "other states")) %>% 
+  group_by(sub_group, as_of) %>%
+  summarize(us_cases = sum(cases, na.rm = TRUE) / sum(pop_2019, na.rm = TRUE) * 1000000,
+            us_cases_ch = sum(case_ch, na.rm = TRUE) / sum(pop_2019, na.rm = TRUE) * 1000000,
+            us_deaths = sum(death, na.rm = TRUE) / sum(pop_2019, na.rm = TRUE * 1000000),
+            us_deaths_ch = sum(death_ch, na.rm = TRUE) / sum(pop_2019, na.rm = TRUE * 1000000)) %>% 
+  filter(between(as_of, ymd(20200315), ymd(20200907))) %>% 
+  mutate(since = min(as_of)) %>% 
+  ggplot(mapping = aes(x = as_of, y = us_cases_ch, color = sub_group)) +
+  geom_smooth(linetype = 1, alpha = .1, mapping = aes(fill = weekdays(as_of)), span = .05) +
+  geom_smooth(alpha = 0, size = 1) +
+  geom_vline(xintercept = ymd(20200807), linetype = 2) +
+  # geom_vline(xintercept = ymd(20200715), linetype = 2) +
+  theme(legend.position = "none") +
+  labs(title = str_c(str_c(pk, collapse = ", "), " new cases grew in August", sep = ""), subtitle = "New daily cases per million; Dashed line marks 7 Aug", x = "date", y = "new daily COVID-19 cases per million residents")
+```
