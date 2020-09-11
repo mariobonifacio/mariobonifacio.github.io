@@ -670,6 +670,31 @@ top_n(death_growth, n = 20) %>%
 ```
 
 
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+my_data %>% 
+  filter(as_of == max(as_of)) %>% 
+  arrange(desc(death)) %>% 
+  top_n(10) %>% 
+  select(code) %>% 
+  inner_join(my_data) %>% 
+  arrange(code, as_of) %>% 
+  inner_join(code_names) %>% 
+  inner_join(st_pop_2019) %>% 
+  mutate(cases_pm = cases / pop_2019 * 1E6,
+         deaths_pm = death / pop_2019 * 1E6) %>%
+  ggplot() +
+  geom_line(mapping = aes(x = as_of, y = deaths_pm, color = code))
+  
+  
+  
+
+
+  
+
+```
+
+
+
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 since_100 <- my_data %>% 
