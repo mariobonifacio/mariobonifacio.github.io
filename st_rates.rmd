@@ -673,17 +673,27 @@ top_n(death_growth, n = 20) %>%
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 my_data %>% 
   filter(as_of == max(as_of)) %>% 
-  arrange(desc(death)) %>% 
-  top_n(10) %>% 
-  select(code) %>% 
+  inner_join(code_names) %>% 
+  inner_join(st_pop_2019) %>% 
+  mutate(cases_pm = cases / pop_2019 * 1E6,
+         deaths_pm = death / pop_2019 * 1E6) %>% 
+  arrange(desc(deaths_pm)) %>% 
+  top_n(10) %>%
+  mutate(y_label = deaths_pm, x_label = as_of) %>% 
+  select(code, y_label, x_label) %>% 
+  
+  
   inner_join(my_data) %>% 
   arrange(code, as_of) %>% 
   inner_join(code_names) %>% 
   inner_join(st_pop_2019) %>% 
   mutate(cases_pm = cases / pop_2019 * 1E6,
-         deaths_pm = death / pop_2019 * 1E6) %>%
+         deaths_pm = death / pop_2019 * 1E6,
+         x_label = if_else(as_of == max(as_of), x_label, NULL)) %>%
   ggplot() +
-  geom_line(mapping = aes(x = as_of, y = deaths_pm, color = code))
+  geom_line(mapping = aes(x = as_of, y = deaths_pm, color = code)) +
+  geom_label_repel(mapping = aes(x = x_label, y = y_label, label = code, color = code)) +
+  theme(legend.position = "none")
   
   
   
