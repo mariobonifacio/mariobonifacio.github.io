@@ -32,7 +32,8 @@ all_data <- "https://covidtracking.com/api/v1/states/daily.json" %>%
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-print(str_c("As of ", Sys.time()))
+print(str_c("Retrieved  ", Sys.time()))
+print(str_c("Data as of ", ymd(max(all_data[,date]))))
 ```
 
 
@@ -165,7 +166,7 @@ my_data %>%
   ggplot(mapping = aes(x = reorder(code, pos_rate), y = pos_rate, fill = reg_2)) +
   geom_col() +
   geom_label(mapping = aes(label = code)) +
-  labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates are increasing in the South and Southwest", subtitle = str_c("Two weeks ending  ", max(my_data$as_of))) +
+  labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates remain high in the South and plains", subtitle = str_c("Two weeks ending  ", max(my_data$as_of))) +
   theme(legend.title = element_blank(), axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
 
@@ -198,7 +199,7 @@ my_data %>%
   summarize(as_of = median(as_of), pos_rate = sum(case_ch) / sum(test_ch)) %>% 
   ggplot(mapping = aes(x = as_of, y = pos_rate, color = reg_2, fill = reg_2)) +
   geom_smooth(alpha = .05, span = .5) +
-  labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates are increasing in the South and Southwest", subtitle = str_c("Two months ending  ", max(my_data$as_of))) +
+  labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates are trending downward", subtitle = str_c("Two months ending  ", max(my_data$as_of))) +
   theme(legend.title = element_blank())
 ```
 
@@ -239,7 +240,7 @@ my_data %>%
          month_pos = mean(pos_rate, na.rm = TRUE)) %>% 
   ungroup() %>% 
   ggplot(mapping = aes(x = as_of, y = pos_rate)) +
-  geom_smooth(alpha = 0, span = .6, mapping = aes(color = reg_2)) +
+  geom_line(alpha = 0, span = .6, mapping = aes(color = reg_2)) +
   geom_label(mapping = aes(y = y_label, label = code), na.rm = TRUE) +
   labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates remain high in some states", subtitle = str_c(Sys.Date() - months(1), " through ", max(my_data$as_of), "; Ordered by highest positive rate for the month"))
 # +
@@ -278,12 +279,12 @@ case_growth %>%
   filter(cases_weekly_per_mil > quantile(case_growth$cases_weekly_per_mil, probs = 0.8, na.rm = TRUE) |
            cases_weekly_per_mil < quantile(case_growth$cases_weekly_per_mil, probs = 0.2, na.rm = TRUE)) %>% 
   group_by(code) %>% 
+  filter(as_of >= today() - days(14) ) %>% 
   mutate(pos_rate = sum(case_ch) / sum(test_ch)) %>% 
   ungroup() %>% 
-  ggplot() +
-  geom_col(mapping = aes(x = reorder(code, X = desc(cases_weekly_per_mil)), fill = pos_rate, y = cases_weekly_per_mil)) +
-  labs(x = "state", y = "Weekly cases per million residents", title = stringr::str_c("States with most new cases per million"), subtitle = str_c("2 weeks ending", case_growth$wk_ending[1], sep = " ")) +
-  theme(legend.title=element_blank())
+  ggplot(mapping = aes(x = reorder(code, X = desc(cases_weekly_per_mil)), y = cases_weekly_per_mil)) +
+  geom_col(mapping = aes(fill = pos_rate)) +
+  labs(x = "state", y = "Weekly cases per million residents", title = stringr::str_c("States with most new cases per million"), subtitle = str_c("2 weeks ending", case_growth$wk_ending[1], sep = " "), fill = "pos. rate")
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
@@ -292,8 +293,13 @@ death_growth %>%
   arrange(desc(death_weekly_per_mil)) %>% 
   filter(death_weekly_per_mil > quantile(death_growth$death_weekly_per_mil, probs = 0.8, na.rm = TRUE) |
            death_weekly_per_mil < quantile(death_growth$death_weekly_per_mil, probs = 0.2, na.rm = TRUE)) %>% 
+  inner_join(my_data) %>%
+  group_by(code) %>% 
+  filter(as_of >= today() - days(14) ) %>% 
+  mutate(cfr = sum(death_ch) / sum(case_ch)) %>% 
+  ungroup() %>%
   ggplot() +
-  geom_col(mapping = aes(x = reorder(code, X = desc(death_weekly_per_mil)), y = death_weekly_per_mil, fill = reg_2)) +
+  geom_col(mapping = aes(x = reorder(code, X = desc(death_weekly_per_mil)), y = death_weekly_per_mil, fill = cfr)) +
   labs(x = "state", y = "Weekly deaths per million residents", title = stringr::str_c("States with most & fewest deaths per million"), subtitle = str_c("2 weeks ending", case_growth$wk_ending[1], sep = " ")) +
   theme(legend.title=element_blank())
 ```
@@ -831,14 +837,15 @@ my_data %>%
   summarize(us_cases = sum(cases, na.rm = TRUE) / sum(pop_2019, na.rm = TRUE) * 1000000,
             us_cases_ch = sum(case_ch, na.rm = TRUE) / sum(pop_2019, na.rm = TRUE) * 1000000,
             us_deaths = sum(death, na.rm = TRUE) / sum(pop_2019, na.rm = TRUE * 1000000),
-            us_deaths_ch = sum(death_ch, na.rm = TRUE) / sum(pop_2019, na.rm = TRUE * 1000000)) %>% 
+            us_deaths_ch = sum(death_ch, na.rm = TRUE) / sum(pop_2019, na.rm = TRUE * 1000000),
+            pos_rate = sum(case_ch, na.rm = TRUE) / sum(test_ch, na.rm = TRUE)) %>% 
   filter(between(as_of, ymd(20200315), ymd(20200907))) %>% 
   mutate(since = min(as_of)) %>% 
   ggplot(mapping = aes(x = as_of, y = us_cases_ch, color = sub_group)) +
-  geom_smooth(linetype = 1, alpha = .1, mapping = aes(fill = weekdays(as_of)), span = .05) +
+  geom_smooth(linetype = 0, mapping = aes(alpha = pos_rate, fill = sub_group), span = .35) +
   geom_smooth(alpha = 0, size = 1) +
   geom_vline(xintercept = ymd(20200807), linetype = 2) +
   # geom_vline(xintercept = ymd(20200715), linetype = 2) +
-  theme(legend.position = "none") +
+  # theme(legend.position = "none") +
   labs(title = str_c(str_c(pk, collapse = ", "), " new cases grew in August", sep = ""), subtitle = "New daily cases per million; Dashed line marks 7 Aug", x = "date", y = "new daily COVID-19 cases per million residents")
 ```

@@ -7,8 +7,7 @@ Loading packages
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 
-libby <- "/users/teams/users/conmrob/3.5.2 library"
-.libPaths(new = libby)
+.libPaths()
 
 library(lubridate)
 library(tidyverse)
@@ -19,27 +18,35 @@ library(RColorBrewer)
 ```
 
 
-Pulling the most recent data from covidtracking.com
+Pulling the most recent data from ecdc
 ```{r include=FALSE}
-ecdc_data <- read.csv("https://opendata.ecdc.europa.eu/covid19/casedistribution/csv", na.strings = "", fileEncoding = "UTF-8-BOM")
+ecdc_data <- read.csv("https://opendata.ecdc.europa.eu/covid19/casedistribution/csv", na.strings = "", fileEncoding = "UTF-8-BOM", stringsAsFactors = FALSE)
 ```
+
+
+Importing 
+```{r}
+pop_data <- read_csv("pop_data.csv", col_types = "cci")
+```
+
 
 
 Narrowing to 
 ```{r include=FALSE}
 my_ecdc <- ecdc_data %>% 
   mutate(as_of = dmy(dateRep),
-         country = as.character(countriesAndTerritories),
-         cases_pm = cases * 1000000 / popData2018,
-         deaths_pm = deaths * 1000000 / popData2018) %>% 
-  select(as_of,
-         country,
+         co_code = as.character(countryterritoryCode)) %>% 
+  inner_join(pop_data) %>% 
+         mutate(cases_pm = cases * 1000000 / pop_2019,
+         deaths_pm = deaths * 1000000 / pop_2019) %>% 
+  select(co_code,
+         co_name,
+         as_of,
          cases,
          cases_pm,
          deaths,
          deaths_pm,
-         pop = popData2018,
-         code = countryterritoryCode)
+         pop_2019)
   
 ```
 
@@ -79,35 +86,65 @@ oecd_list <- c("AUSTRALIA", "AUSTRIA", "BELGIUM", "CANADA", "CHILE",
 Building tables
 ```{r include=FALSE}
 my_oecd <- my_ecdc %>% 
-  filter(toupper(country) %in% oecd_list)
+  filter(toupper(co_name) %in% oecd_list)
 ```
+
+
+
+```{r}
+
+just_nordics <- my_oecd %>% 
+  filter(co_code %in% c("SWE", "FIN", "ISL", "NOR", "DNK")) %>% 
+  group_by(co_code) %>% 
+  arrange(as_of) %>% 
+  mutate(tot_deaths = cumsum(deaths),
+         tot_deaths_pm = cumsum(deaths_pm),
+         tot_cases = cumsum(cases),
+         tot_cases_pm = cumsum(cases_pm)) %>% 
+  ungroup()
+  
+
+```
+
+
+
+```{r}
+just_nordics %>% 
+  filter(tot_deaths>0) %>% 
+  mutate(x_lbl = if_else(as_of == max(as_of), max(as_of), NULL),
+         y_lbl = if_else(as_of == max(as_of), tot_deaths_pm, NULL)) %>% 
+  ggplot(mapping = aes(x = as_of, y = tot_deaths_pm)) +
+  geom_line(mapping = aes(color = co_code)) +
+  geom_label_repel(mapping = aes(x = x_lbl, y = y_lbl, color = co_code, label = co_code)) +
+  theme(legend.position = NULL)
+```
+
 
 
 
 ```{r include=FALSE}
 weekly_oecd <- my_oecd %>% 
   mutate(as_of_week = lubridate::week(as_of)) %>%
-  group_by(country,code, as_of_week) %>% 
+  group_by(co_code, as_of_week) %>% 
   summarize(weekly_deaths_pm = sum(deaths_pm),
             weekly_deaths = sum(deaths),
             weekly_cases_pm = sum(cases_pm),
             weekly_cases = sum(cases),
+            mean_cases_pm = mean(deaths_pm, na.rm = TRUE),
             mean_deaths_pm = mean(deaths_pm, na.rm = TRUE),
-            mean_deaths = mean(deaths),
             wk_ending = max(as_of))
 ```
 
 
 ```{r echo=FALSE}
 weekly_oecd %>%
-  group_by(code) %>% 
-  filter(wk_ending == max(wk_ending)) %>%
-  ungroup() %>%
-  filter(weekly_deaths_pm > median(weekly_deaths_pm)) %>% 
-  arrange(desc(weekly_deaths_pm)) %>% 
+  filter(1 >= abs(lubridate::week(max(wk_ending)) - as_of_week)) %>%
+  group_by(co_code) %>% 
+  summarize(death_ch_pm = sum(weekly_deaths_pm)) %>% 
+  filter(death_ch_pm > median(death_ch_pm)) %>% 
   ggplot() +
-  geom_col(mapping = aes(x = reorder(code, desc(weekly_deaths_pm)), y = weekly_deaths_pm)) +
-  labs(x = "Country code", y = "Deaths in the past week per 1 mil population", subtitle = str_c("as of", max(weekly_oecd$wk_ending), sep = " "), title = "Weekly deaths adjusted for population")
+  geom_col(mapping = aes(x = reorder(co_code, desc(death_ch_pm)), y = death_ch_pm)) +
+  labs(x = "Country code", y = "Deaths the past 2 weeks per 1 mil. pop.", subtitle = str_c("as of", max(weekly_oecd$wk_ending), sep = " "), title = "Deaths over the last two weeks adjusted for population")
 ```
 
 ```{r}
