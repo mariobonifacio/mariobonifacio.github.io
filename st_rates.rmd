@@ -851,6 +851,69 @@ my_data %>%
 ```
 
 ```{r}
-my_data
+pop_dens <- read_csv("pop_density.csv") %>% 
+  select(code, dens = Density, pop = Pop)
 ```
 
+```{r}
+my_data %>% 
+  inner_join(results_2016) %>% 
+  group_by(code) %>% 
+  filter(as_of == max(as_of)) %>% 
+  filter(t_mgn < 0) %>% 
+  ungroup() %>% 
+  inner_join(pop_dens) %>% 
+  mutate(death_pm = death/pop * 1000000) %>% 
+  ggplot(mapping = aes(x = dens, y = death_pm)) +
+  geom_label_repel(mapping = aes(label = code)) +
+  geom_smooth(linetype = 3, method = "lm") +
+  labs(x = "Population per square mile", y = "COVID-19 deaths per million")
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+my_data %>% 
+  inner_join(code_names) %>% 
+  inner_join(st_pop_2019) %>%
+  inner_join(results_2016) %>% 
+  mutate(is_clinton = t_mgn < 0) %>% 
+  group_by(is_clinton, as_of) %>%
+  summarize(case_ch_pm = sum(case_ch) / sum(pop_2019) * 1000000,
+            death_ch_pm = sum(death_ch) / sum(pop_2019) * 1000000,
+            cases_pm = sum(cases) / sum(pop_2019) * 1000000,
+            death_pm = sum(death) / sum(pop_2019) * 1000000) %>% 
+  filter(cases_pm >= 10) %>% 
+  ggplot() +
+  geom_smooth(mapping = aes(x = as_of, y = case_ch_pm, color = is_clinton, fill = is_clinton), alpha = 0.1, na.rm = TRUE, span = .1) +
+  labs(x = "Date", y = "New COVID-19 cases per million per day", title = "States Trump won have had higher daily new COVID-19 cases since June", subtitle = "Total new COVID-19 cases per million per day by 2016 result") +
+  theme(
+    # axis.text = element_blank(),
+    #     axis.ticks = element_blank(),
+    #     axis.title.x  = element_blank(),
+        # strip.background = element_rect(fill = "lightgray"),
+        legend.position = 0)
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+my_data %>% 
+  inner_join(code_names) %>% 
+  inner_join(st_pop_2019) %>%
+  inner_join(results_2016) %>% 
+  mutate(is_clinton = t_mgn < 0) %>% 
+  group_by(is_clinton, as_of) %>%
+  summarize(case_ch_pm = sum(case_ch) / sum(pop_2019) * 1000000,
+            death_ch_pm = sum(death_ch) / sum(pop_2019) * 1000000,
+            cases_pm = sum(cases) / sum(pop_2019) * 1000000,
+            death_pm = sum(death) / sum(pop_2019) * 1000000) %>% 
+  filter(cases_pm >= 10) %>% 
+  ggplot() +
+  geom_smooth(mapping = aes(x = as_of, y = death_ch_pm, color = is_clinton, fill = is_clinton), alpha = 0.1, na.rm = TRUE, span = .1) +
+  labs(x = "Date", y = "COVID-19 deaths per million per day", title = "States Trump won have had higher daily COVID-19 deaths since July", subtitle = "Total COVID-19 deaths per million per day by 2016 result") +
+  theme(
+    # axis.text = element_blank(),
+    #     axis.ticks = element_blank(),
+    #     axis.title.x  = element_blank(),
+        # strip.background = element_rect(fill = "lightgray"),
+        legend.position = 0)
+```
