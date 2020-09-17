@@ -345,7 +345,7 @@ my_data %>%
          month_growth = max(case_growth, na.rm = TRUE)) %>%
   ungroup() %>% 
   ggplot() +
-  geom_smooth(mapping = aes(x = as_of, y = case_growth, color = is_clinton), na.rm = TRUE, span = .1) +
+  geom_smooth(mapping = aes(x = as_of, y = case_growth, color = is_clinton), na.rm = TRUE, span = .07) +
   labs(x = "state", y = "Growth rate of COVID-19 cases", title = "Sun belt states saw the highest COVID-19 case growth rates in June", subtitle = "Growth rate of total COVID-19 cases from 1 to 30 June 2020 by state") +
   facet_wrap(facets = vars(reorder(code, desc(month_growth))), nrow = 5) +
   theme(axis.text = element_blank(),
@@ -523,7 +523,7 @@ my_data %>%
   # geom_smooth(size = 1, alpha = 0, linetype = 1, color = "black", span = .5) +
   geom_vline(xintercept = ymd(20200621), color = "dodgerblue", linetype = 2) +
   theme(legend.title = element_blank()) +
-  labs(title = str_c("It appears as though", pk, "cases are not plateauing, let alone dropping", sep = " "), subtitle = str_c("Cases per day since", min(my_data[death_ch > 9 & code == 'OK', as_of]), sep = " "), x = NULL, y = "New COVID-19 cases by day", caption = "The vertical, dashed blue line marks the President's 21 June rally in Tulsa") +
+  labs(title = str_c("It appears as though", pk, "cases are plateauing", sep = " "), subtitle = str_c("Cases per day since", min(my_data[death_ch > 9 & code == 'OK', as_of]), sep = " "), x = NULL, y = "New COVID-19 cases by day", caption = "The vertical, dashed blue line marks the President's 21 June rally in Tulsa") +
   scale_alpha(range = c(.1, .3))
 ```
 
@@ -849,3 +849,8 @@ my_data %>%
   # theme(legend.position = "none") +
   labs(title = str_c(str_c(pk, collapse = ", "), " new cases grew in August", sep = ""), subtitle = "New daily cases per million; Dashed line marks 7 Aug", x = "date", y = "new daily COVID-19 cases per million residents")
 ```
+
+```{r}
+my_data
+```
+

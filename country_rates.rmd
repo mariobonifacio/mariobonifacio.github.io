@@ -1,6 +1,8 @@
 ---
 title: "R Notebook"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 Loading packages
@@ -114,9 +116,10 @@ just_nordics %>%
   mutate(x_lbl = if_else(as_of == max(as_of), max(as_of), NULL),
          y_lbl = if_else(as_of == max(as_of), tot_deaths_pm, NULL)) %>% 
   ggplot(mapping = aes(x = as_of, y = tot_deaths_pm)) +
-  geom_line(mapping = aes(color = co_code)) +
-  geom_label_repel(mapping = aes(x = x_lbl, y = y_lbl, color = co_code, label = co_code)) +
-  theme(legend.position = NULL)
+  geom_point(mapping = aes(color = co_code, size = deaths_pm)) +
+  geom_label_repel(mapping = aes(x = x_lbl, y = y_lbl, color = co_code, label = co_code), na.rm = TRUE) +
+  theme(legend.position = "none") +
+  labs(title = "Sweden has five to 10 times more COVID-19 deaths than other Nordic countries")
 ```
 
 
@@ -149,10 +152,9 @@ weekly_oecd %>%
 
 ```{r}
 weekly_oecd %>% 
-  filter(code %in% c("CAN", "USA", "GBR")) %>% 
-  ggplot(mapping = aes(x = wk_ending, y = mean_deaths_pm, color = code)) +
-  geom_line() +
-  xlim(ymd(20200301), ymd(20200430))
+  filter(co_code %in% c("CAN", "USA", "GBR")) %>% 
+  ggplot(mapping = aes(x = wk_ending, y = mean_deaths_pm, color = co_code)) +
+  geom_line()
 
 ```
 
@@ -160,7 +162,7 @@ weekly_oecd %>%
 
 ```{r echo=FALSE}
 total_oecd <- my_oecd %>% 
-  group_by(country,code) %>% 
+  group_by(co_code) %>% 
   summarize(total_deaths_pm = sum(deaths_pm),
             total_deaths = sum(deaths),
             total_cases_pm = sum(cases_pm),
@@ -174,7 +176,7 @@ total_oecd %>%
   filter(total_deaths_pm > median(total_oecd$total_deaths_pm)) %>% 
   arrange(desc(total_deaths_pm)) %>% 
   ggplot() +
-  geom_col(mapping = aes(x = reorder(code, desc(total_deaths_pm)), y = total_deaths_pm)) +
+  geom_col(mapping = aes(x = reorder(co_code, desc(total_deaths_pm)), y = total_deaths_pm)) +
   labs(x = "Country code", y = "Deaths per 1 mil population")
 ```
 
@@ -183,7 +185,7 @@ total_oecd %>%
 total_oecd %>%
   mutate(cfr = signif(total_deaths / total_cases, 2)) %>% 
   ggplot() +
-  geom_label_repel(mapping = aes(x = total_cases_pm, y = total_deaths_pm, label = str_c(code, cfr, sep = " "), color = cfr)) +
+  geom_label_repel(mapping = aes(x = total_cases_pm, y = total_deaths_pm, label = str_c(co_code, cfr, sep = " "), color = cfr)) +
   labs(x = "Cases per 1 mil population", y = "Deaths per 1 mil population") +
   scale_color_gradientn(colors = c("darkgray", "red"))
 ```
@@ -192,15 +194,15 @@ total_oecd %>%
 
 ```{r}
 labelly <- my_oecd %>% 
-  group_by(code) %>% 
+  group_by(co_code) %>% 
   summarize(as_of = max(as_of), label_death = max(deaths_pm))
 
 
 my_oecd %>% 
-  left_join(labelly, by = c("code", "as_of")) %>% 
+  left_join(labelly, by = c("co_code", "as_of")) %>% 
   ggplot() +
-  geom_line(mapping = aes(x = as_of, y = deaths_pm, color = country)) +
-  geom_label(aes(x = as_of, y = label_death, label = code), na.rm = TRUE) +
+  geom_line(mapping = aes(x = as_of, y = deaths_pm, color = co_code)) +
+  geom_label(aes(x = as_of, y = label_death, label = co_code), na.rm = TRUE) +
   theme(legend.position = "none") +
   xlim(ymd(20200301), as_date(Sys.time()))
 ```
