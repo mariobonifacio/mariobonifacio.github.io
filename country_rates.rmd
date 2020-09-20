@@ -114,14 +114,27 @@ just_nordics <- my_oecd %>%
 just_nordics %>% 
   filter(tot_deaths>0) %>% 
   mutate(x_lbl = if_else(as_of == max(as_of), max(as_of), NULL),
-         y_lbl = if_else(as_of == max(as_of), tot_deaths_pm, NULL)) %>% 
+         y_lbl = if_else(as_of == max(as_of), tot_deaths_pm, NULL),
+         cfr = deaths / cases) %>% 
   ggplot(mapping = aes(x = as_of, y = tot_deaths_pm)) +
-  geom_point(mapping = aes(color = co_code, size = deaths_pm)) +
+  geom_point(mapping = aes(color = co_code, size = cfr)) +
   geom_label_repel(mapping = aes(x = x_lbl, y = y_lbl, color = co_code, label = co_code), na.rm = TRUE) +
   theme(legend.position = "none") +
-  labs(title = "Sweden has five to 10 times more COVID-19 deaths than other Nordic countries")
+  labs(title = "Sweden has five to 10 times more COVID-19 deaths than other Nordic countries", x = "Cumulative COVID-19 deaths per million", y = "Date")
 ```
 
+
+```{r}
+just_nordics %>% 
+  filter(tot_cases>0) %>% 
+  mutate(x_lbl = if_else(as_of == max(as_of), max(as_of), NULL),
+         y_lbl = if_else(as_of == max(as_of), tot_cases_pm, NULL)) %>% 
+  ggplot(mapping = aes(x = as_of, y = tot_cases_pm)) +
+  geom_point(mapping = aes(color = co_code, size = cases_pm)) +
+  geom_label_repel(mapping = aes(x = x_lbl, y = y_lbl, color = co_code, label = co_code), na.rm = TRUE) +
+  theme(legend.position = "none") +
+  labs(title = "Sweden has 30 to 500% more COVID-19 cases than other Nordic countries")
+```
 
 
 
@@ -173,10 +186,11 @@ total_oecd <- my_oecd %>%
 
 ```{r echo=FALSE}
 total_oecd %>% 
-  filter(total_deaths_pm > median(total_oecd$total_deaths_pm)) %>% 
+  filter(total_deaths_pm > median(total_oecd$total_deaths_pm)) %>%
+  mutate(cfr = total_deaths / total_cases) %>% 
   arrange(desc(total_deaths_pm)) %>% 
   ggplot() +
-  geom_col(mapping = aes(x = reorder(co_code, desc(total_deaths_pm)), y = total_deaths_pm)) +
+  geom_col(mapping = aes(x = reorder(co_code, desc(total_deaths_pm)), y = total_deaths_pm, fill = cfr)) +
   labs(x = "Country code", y = "Deaths per 1 mil population")
 ```
 
