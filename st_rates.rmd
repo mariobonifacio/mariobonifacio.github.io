@@ -986,8 +986,7 @@ my_data %>%
   summarize(case_ch_pm = sum(case_ch) / sum(pop_2019) * 1000000,
             death_ch_pm = sum(death_ch) / sum(pop_2019) * 1000000,
             cases_pm = sum(cases) / sum(pop_2019) * 1000000,
-            death_pm = sum(death) / sum(pop_2019) * 1000000,
-            ) %>% 
+            death_pm = sum(death) / sum(pop_2019) * 1000000) %>% 
   filter(cases_pm >= 10) %>% 
   ggplot() +
   geom_smooth(mapping = aes(x = as_of, y = cases_pm, color = is_clinton, fill = is_clinton), alpha = 0.1, na.rm = TRUE, span = .1) +
@@ -1014,14 +1013,15 @@ my_data %>%
             death_pm = sum(death) / sum(pop_2019) * 1000000) %>% 
   group_by(as_of) %>% 
   mutate(multy = 2 * is_clinton - 1,
-         case_ch_pm_diff = sum(multy * case_ch_pm),
+         case_ch_pm_diff = if_else(sum(multy * case_ch_pm) < 0, - sum(multy * case_ch_pm) / 2, 0),
          death_ch_pm_diff = sum(multy * death_ch_pm),
          cases_pm_diff = sum(multy * cases_pm),
-         death_pm_diff = sum(multy * death_pm)) %>% 
+         death_pm_diff = if_else(sum(multy * death_pm) > 0, sum(multy * death_pm) / 2, 0)) %>% 
   ungroup() %>% 
   filter(cases_pm >= 10) %>% 
-  ggplot() +
+  ggplot(mapping = aes(x = as_of)) +
   geom_smooth(mapping = aes(x = as_of, y = death_pm, color = is_clinton, fill = is_clinton), alpha = 0.1, na.rm = TRUE, span = .1) +
+  geom_col(mapping = aes(y = death_pm_diff)) +
   labs(x = "Date", y = "COVID-19 deaths per million per day", title = "States Trump won have had higher daily COVID-19 deaths since July", subtitle = "Total COVID-19 deaths per million per day by 2016 result") +
   theme(
     # axis.text = element_blank(),

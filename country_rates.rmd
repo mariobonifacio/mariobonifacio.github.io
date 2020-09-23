@@ -133,7 +133,7 @@ just_nordics %>%
   geom_point(mapping = aes(color = co_code, size = cases_pm)) +
   geom_label_repel(mapping = aes(x = x_lbl, y = y_lbl, color = co_code, label = co_code), na.rm = TRUE) +
   theme(legend.position = "none") +
-  labs(title = "Sweden has 30 to 500% more COVID-19 cases than other Nordic countries")
+  labs(title = "Sweden has 30 to 500% more cases per capita than other Nordic countries")
 ```
 
 
@@ -162,6 +162,18 @@ weekly_oecd %>%
   geom_col(mapping = aes(x = reorder(co_code, desc(death_ch_pm)), y = death_ch_pm)) +
   labs(x = "Country code", y = "Deaths the past 2 weeks per 1 mil. pop.", subtitle = str_c("as of", max(weekly_oecd$wk_ending), sep = " "), title = "Deaths over the last two weeks adjusted for population")
 ```
+
+```{r echo=FALSE}
+weekly_oecd %>%
+  filter(1 >= abs(lubridate::week(max(wk_ending)) - as_of_week)) %>%
+  group_by(co_code) %>% 
+  summarize(cases_ch_pm = sum(weekly_cases_pm)) %>% 
+  filter(cases_ch_pm > median(cases_ch_pm)) %>% 
+  ggplot() +
+  geom_col(mapping = aes(x = reorder(co_code, desc(cases_ch_pm)), y = cases_ch_pm)) +
+  labs(x = "Country code", y = "Cases the past 2 weeks per 1 mil. pop.", subtitle = str_c("as of", max(weekly_oecd$wk_ending), sep = " "), title = "Cases over the last two weeks adjusted for population")
+```
+
 
 ```{r}
 weekly_oecd %>% 
@@ -219,5 +231,19 @@ my_oecd %>%
   geom_label(aes(x = as_of, y = label_death, label = co_code), na.rm = TRUE) +
   theme(legend.position = "none") +
   xlim(ymd(20200301), as_date(Sys.time()))
+```
+
+
+```{r}
+raw_labor <- read_csv("nordic_unemp.csv")
+
+nord_labor <- raw_labor %>%
+  gather(code, "den", "fin", "isl", "nor", "swe") %>% 
+  mutate(code = toupper(code))
+```
+
+
+```{r}
+
 ```
 
