@@ -1021,7 +1021,7 @@ my_data %>%
   filter(cases_pm >= 10) %>% 
   ggplot(mapping = aes(x = as_of)) +
   geom_smooth(mapping = aes(x = as_of, y = death_pm, color = is_clinton, fill = is_clinton), alpha = 0.1, na.rm = TRUE, span = .1) +
-  geom_col(mapping = aes(y = death_pm_diff)) +
+  geom_point(mapping = aes(y = death_pm_diff)) +
   labs(x = "Date", y = "COVID-19 deaths per million per day", title = "States Trump won have had higher daily COVID-19 deaths since July", subtitle = "Total COVID-19 deaths per million per day by 2016 result") +
   theme(
     # axis.text = element_blank(),

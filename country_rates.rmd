@@ -238,12 +238,23 @@ my_oecd %>%
 raw_labor <- read_csv("nordic_unemp.csv")
 
 nord_labor <- raw_labor %>%
-  gather(code, "den", "fin", "isl", "nor", "swe") %>% 
+  gather(code, "unemp", "dnk", "fin", "isl", "nor", "swe") %>% 
   mutate(code = toupper(code))
 ```
 
 
 ```{r}
+nord_labor %>% 
+  mutate(co_code = code) %>% 
+  group_by(co_code) %>%
+  filter(!is.na(unemp)) %>% 
+  filter(ymd(DATE) %in% c(max(ymd(DATE), na.rm = TRUE), ymd("2020-01-01"))) %>%
+  summarize(as_of = max(DATE, na.rm = TRUE), unemp = max(unemp, na.rm = TRUE) - min(unemp, na.rm = TRUE)) %>% 
+  left_join(my_oecd) %>% 
+  ggplot() +
+  geom_label(mapping = aes(x = cases_pm, y = unemp, color = co_code, label = str_c(co_code))) +
+  labs(x = "COVID-19 cases per million", y = str_c("change in unemployment rate from Jan 2020")) +
+  theme(legend.position = "none")
 
+  
 ```
-
