@@ -59,6 +59,8 @@ oecd_list <- c("AUSTRALIA", "AUSTRIA", "BELGIUM", "CANADA", "CHILE",
 "GERMANY", "GREECE", "HUNGARY", "ICELAND", "IRELAND", "ISRAEL", "ITALY",
 "JAPAN",
 "KOREA",
+"SOUTH KOREA",
+"SOUTH_KOREA",
 "LATVIA",
 "LITHUANIA",
 "LUXEMBOURG",
@@ -223,8 +225,10 @@ labelly <- my_oecd %>%
   group_by(co_code) %>% 
   summarize(as_of = max(as_of), label_death = max(deaths_pm))
 
+unique(my_oecd$co_code)
 
 my_oecd %>% 
+  filter(co_code == "KOR") %>% 
   left_join(labelly, by = c("co_code", "as_of")) %>% 
   ggplot() +
   geom_line(mapping = aes(x = as_of, y = deaths_pm, color = co_code)) +
