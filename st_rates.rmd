@@ -860,14 +860,16 @@ my_data %>%
   inner_join(results_2016) %>% 
   group_by(code) %>% 
   filter(as_of == max(as_of)) %>% 
-  filter(t_mgn < 0) %>% 
+  mutate(hrc = (t_mgn < 0)) %>% 
+  # filter(hrc == FALSE) %>% 
   ungroup() %>% 
   inner_join(pop_dens) %>% 
   mutate(death_pm = death/pop * 1000000) %>% 
-  ggplot(mapping = aes(x = dens, y = death_pm)) +
-  geom_label_repel(mapping = aes(label = code)) +
+  ggplot(mapping = aes(x = log(dens), y = death_pm, color = hrc, fill = hrc)) +
+  geom_label(mapping = aes(x = log(dens), y = death_pm, label = code, fill = NULL)) +
   geom_smooth(linetype = 3, method = "lm") +
   labs(x = "Population per square mile", y = "COVID-19 deaths per million")
+  # facet_wrap(facets = vars(hrc))
 ```
 
 
@@ -990,7 +992,7 @@ my_data %>%
   filter(cases_pm >= 10) %>% 
   ggplot() +
   geom_smooth(mapping = aes(x = as_of, y = cases_pm, color = is_clinton, fill = is_clinton), alpha = 0.1, na.rm = TRUE, span = .1) +
-  labs(x = "Date", y = "New cases per day per million", title = "States Trump won have had more COVID-19 cases per capita since June", subtitle = "Daily COVID-19 cases per million residents") +
+  labs(x = "Date", y = "Cumulative cases per million", title = "States Trump won have had more COVID-19 cases per capita since June", subtitle = "Daily COVID-19 cases per million residents") +
   theme(
     # axis.text = element_blank(),
     #     axis.ticks = element_blank(),
@@ -1022,7 +1024,7 @@ my_data %>%
   ggplot(mapping = aes(x = as_of)) +
   geom_smooth(mapping = aes(x = as_of, y = death_pm, color = is_clinton, fill = is_clinton), alpha = 0.1, na.rm = TRUE, span = .1) +
   geom_point(mapping = aes(y = death_pm_diff)) +
-  labs(x = "Date", y = "COVID-19 deaths per million per day", title = "States Trump won have had higher daily COVID-19 deaths since July", subtitle = "Total COVID-19 deaths per million per day by 2016 result") +
+  labs(x = "Date", y = "Cumulative COVID-19 deaths per million", title = "The gap in total deaths has been shrinking since July", subtitle = "Total COVID-19 deaths per million per day by 2016 result") +
   theme(
     # axis.text = element_blank(),
     #     axis.ticks = element_blank(),
