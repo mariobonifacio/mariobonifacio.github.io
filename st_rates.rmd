@@ -166,7 +166,7 @@ my_data %>%
   ggplot(mapping = aes(x = reorder(code, pos_rate), y = pos_rate, fill = reg_2)) +
   geom_col() +
   geom_label(mapping = aes(label = code)) +
-  labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates remain high in the South and plains", subtitle = str_c("Two weeks ending  ", max(my_data$as_of))) +
+  labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates remain high in the Midwest and plains", subtitle = str_c("Two weeks ending  ", max(my_data$as_of))) +
   theme(legend.title = element_blank(), axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
 
@@ -414,11 +414,16 @@ my_data %>%
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 case_growth %>%
+  inner_join(my_data) %>%
   inner_join(code_names) %>% 
+  filter(as_of > today() - days(14)) %>% 
   arrange(desc(cases_weekly_growth)) %>% 
+  group_by(code) %>% 
+  mutate(pos_rate = sum(case_ch) / sum(test_ch)) %>% 
+  ungroup() %>% 
   filter(cases_weekly_growth > quantile(case_growth$cases_weekly_growth, probs = 0.7, na.rm = TRUE)) %>% 
   ggplot() +
-  geom_col(mapping = aes(x = reorder(code, X = desc(cases_weekly_growth)), y = cases_weekly_growth, fill = reg_2)) +
+  geom_col(mapping = aes(x = reorder(code, X = desc(cases_weekly_growth)), y = cases_weekly_growth, color = reg_2, fill = pos_rate)) +
   labs(x = "state", y = "weekly case growth rate", title = stringr::str_c("Highest case growth rate by state, week ending", case_growth$wk_ending[1], sep = " ")) +
   theme(legend.title=element_blank())
 ```
@@ -865,8 +870,8 @@ my_data %>%
   ungroup() %>% 
   inner_join(pop_dens) %>% 
   mutate(death_pm = death/pop * 1000000) %>% 
-  ggplot(mapping = aes(x = log(dens), y = death_pm, color = hrc, fill = hrc)) +
-  geom_label(mapping = aes(x = log(dens), y = death_pm, label = code, fill = NULL)) +
+  ggplot(mapping = aes(x = dens, y = log(death_pm), color = hrc, fill = hrc)) +
+  geom_label(mapping = aes(x = dens, y = log(death_pm), label = code, fill = NULL)) +
   geom_smooth(linetype = 3, method = "lm") +
   labs(x = "Population per square mile", y = "COVID-19 deaths per million")
   # facet_wrap(facets = vars(hrc))
@@ -1031,5 +1036,14 @@ my_data %>%
     #     axis.title.x  = element_blank(),
         # strip.background = element_rect(fill = "lightgray"),
         legend.position = 0)
+```
+
+
+```{r}
+# my_data %>% 
+#   inner_join(code_names) %>% 
+#   inner_join(st_pop_2019) %>% 
+#   group_by(code, week(as_of)) %>% 
+#   summarize(mo_ratio = if_else)
 ```
 

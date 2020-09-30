@@ -225,16 +225,24 @@ labelly <- my_oecd %>%
   group_by(co_code) %>% 
   summarize(as_of = max(as_of), label_death = max(deaths_pm))
 
-unique(my_oecd$co_code)
 
-my_oecd %>% 
-  filter(co_code == "KOR") %>% 
-  left_join(labelly, by = c("co_code", "as_of")) %>% 
-  ggplot() +
-  geom_line(mapping = aes(x = as_of, y = deaths_pm, color = co_code)) +
-  geom_label(aes(x = as_of, y = label_death, label = co_code), na.rm = TRUE) +
-  theme(legend.position = "none") +
-  xlim(ymd(20200301), as_date(Sys.time()))
+my_kor <- my_oecd %>%
+  filter(co_code == "KOR") %>%
+  select(as_of, cases, deaths)
+
+j <- data.table(d_offset = integer(), cor_offset = double())
+
+for (i in 5:62) {
+
+j <- rbind(j, data.table(d_offset = i, cor_offset = my_kor %>%
+    mutate(d_lag = as_of + days(i)) %>%
+    left_join(my_kor, by = c("d_lag" = "as_of")) %>% 
+    pull(6) %>% 
+    cor(x = ., y = my_kor$cases, use = "complete.obs")))
+}
+
+j[order(-cor_offset)]
+
 ```
 
 
