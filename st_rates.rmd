@@ -951,35 +951,7 @@ my_data %>%
 ```
 
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-my_data %>% 
-  inner_join(code_names) %>% 
-  inner_join(st_pop_2019) %>%
-  inner_join(results_2016) %>% 
-  mutate(is_clinton = t_mgn < 0) %>% 
-  group_by(is_clinton, as_of) %>%
-  summarize(case_ch_pm = sum(case_ch) / sum(pop_2019) * 1000000,
-            death_ch_pm = sum(death_ch) / sum(pop_2019) * 1000000,
-            cases_pm = sum(cases) / sum(pop_2019) * 1000000,
-            death_pm = sum(death) / sum(pop_2019) * 1000000) %>% 
-  group_by(as_of) %>% 
-  mutate(multy = 2 * is_clinton - 1,
-         case_ch_pm_diff = sum(multy * case_ch_pm),
-         death_ch_pm_diff = sum(multy * death_ch_pm),
-         cases_pm_diff = sum(multy * cases_pm),
-         death_pm_diff = sum(multy * death_pm)) %>% 
-  ungroup() %>% 
-  filter(cases_pm >= 10) %>% 
-  ggplot() +
-  geom_smooth(mapping = aes(x = as_of, y = death_pm, color = is_clinton, fill = is_clinton), alpha = 0.1, na.rm = TRUE, span = .1) +
-  labs(x = "Date", y = "COVID-19 deaths per million per day", title = "States Trump won have had higher daily COVID-19 deaths since July", subtitle = "Total COVID-19 deaths per million per day by 2016 result") +
-  theme(
-    # axis.text = element_blank(),
-    #     axis.ticks = element_blank(),
-    #     axis.title.x  = element_blank(),
-        # strip.background = element_rect(fill = "lightgray"),
-        legend.position = 0)
-```
+
 
 
 
@@ -1040,10 +1012,56 @@ my_data %>%
 
 
 ```{r}
-# my_data %>% 
-#   inner_join(code_names) %>% 
-#   inner_join(st_pop_2019) %>% 
-#   group_by(code, week(as_of)) %>% 
-#   summarize(mo_ratio = if_else)
+my_data %>% 
+  inner_join(code_names) %>% 
+  inner_join(st_pop_2019) %>% 
+  inner_join(results_2016) %>% 
+  mutate(day_of_week = weekdays(as_of)) %>% 
+  group_by(code, day_of_week) %>%
+  mutate(max_case_ch = max(case_ch),
+         hi_date = if_else(case_ch == max_case_ch, as_of, NULL),
+         case_ch_pm = as.integer(case_ch / pop_2019 * 1000000),
+         pos_rate = case_ch / test_ch) %>% 
+  filter(hi_date == max(as_of)) %>% 
+  select(as_of, code, case_ch_pm, pos_rate) %>% 
+  arrange(desc(case_ch_pm)) %>% 
+  group_by(code) %>% 
+  summarize(as_of = max(as_of), case_ch_pm = mean(case_ch_pm, na.rm = TRUE), pos_rate = max(pos_rate, na.rm = TRUE)) %>% 
+  ggplot(mapping = aes(x = reorder(code, desc(case_ch_pm)), y = case_ch_pm, fill = pos_rate)) +
+  labs(title = str_c("States with a record number of new cases week ending ", max(my_data$as_of)),
+       y = "Daily new cases per million",
+       x = "State") +
+  geom_col() +
+  geom_label(mapping = aes(label = weekdays(as_of, abbreviate = TRUE)), color = "white")
+  
+  
+  
+  
+  
 ```
 
+
+
+```{r}
+my_data %>% 
+  inner_join(code_names) %>% 
+  inner_join(st_pop_2019) %>% 
+  inner_join(results_2016) %>% 
+  mutate(day_of_week = weekdays(as_of)) %>% 
+  group_by(code, day_of_week) %>%
+  mutate(max_death_ch = max(death_ch),
+         hi_date = if_else(death_ch == max_death_ch, as_of, NULL),
+         death_ch_pm = as.integer(death_ch / pop_2019 * 1000000),
+         cfr = death_ch / case_ch) %>% 
+  filter(hi_date == max(as_of)) %>% 
+  select(as_of, code, death_ch_pm, cfr) %>% 
+  arrange(desc(death_ch_pm)) %>% 
+  group_by(code) %>% 
+  summarize(as_of = max(as_of), death_ch_pm = mean(death_ch_pm, na.rm = TRUE), cfr = max(cfr, na.rm = TRUE)) %>% 
+  ggplot(mapping = aes(x = reorder(code, desc(death_ch_pm)), y = death_ch_pm, fill = cfr)) +
+  labs(title = str_c("States with a record number of deaths week ending ", max(my_data$as_of)),
+       y = "Daily deaths per million",
+       x = "State") +
+  geom_col() +
+  geom_label(mapping = aes(label = weekdays(as_of, abbreviate = TRUE)), color = "white")
+```
