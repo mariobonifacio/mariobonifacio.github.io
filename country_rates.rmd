@@ -243,6 +243,22 @@ j <- rbind(j, data.table(d_offset = i, cor_offset = my_kor %>%
 
 j[order(-cor_offset)]
 
+my_kor %>% 
+  mutate(d_as_of = as_of - days(20)) %>% 
+  select(deaths, d_as_of) %>%
+  full_join((my_kor %>% select(cases, as_of)), by = c("d_as_of" = "as_of")) %>% 
+  mutate(week_num = week(d_as_of)) %>%
+  group_by(week_num) %>% 
+  summarize(death_wk = sum(deaths, na.rm = TRUE),
+            case_wk = sum(cases, na.rm = TRUE),
+            week_of = median(d_as_of, na.rm = TRUE)) %>% 
+  mutate(deaths_ix = death_wk / max(death_wk, na.rm = TRUE),
+         cases_ix = case_wk / max(case_wk, na.rm = TRUE)) %>% 
+  ggplot(mapping = aes(x = week_of)) + 
+  geom_line(mapping = aes(y = deaths_ix), color = "green") +
+  geom_line(mapping = aes(y = cases_ix), color = "orange")
+  
+
 ```
 
 
