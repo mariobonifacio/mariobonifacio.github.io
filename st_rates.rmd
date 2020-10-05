@@ -465,14 +465,18 @@ my_data %>%
             us_deaths = sum(death, na.rm = TRUE),
             us_deaths_ch = sum(death_ch, na.rm = TRUE)) %>% 
   mutate(since = min(as_of),
-         casesch_pre = if_else(as_of <= ymd(20200716), us_cases_ch, NULL),
-         casesch_post = if_else(as_of >= ymd(20200716), us_cases_ch, NULL)) %>% 
+         casesch_a = if_else(as_of <= ymd(20200716), us_cases_ch, NULL),
+         casesch_b = if_else(as_of >= ymd(20200716) & as_of <= ymd(20200901), us_cases_ch, NULL),
+         casesch_c = if_else(as_of >= ymd(20200901), us_cases_ch, NULL)) %>% 
   ggplot(mapping = aes(x = as_of)) +
-  geom_smooth(mapping = aes(y = casesch_pre, color = weekdays(as_of)), na.rm = TRUE, method = 'lm', linetype = 'dotted', alpha = 0) +
-  geom_smooth(mapping = aes(y = casesch_post, color = weekdays(as_of)), na.rm = TRUE, method = 'lm', linetype = 'dotted', alpha = 0) +
   
-  geom_smooth(mapping = aes(y = casesch_pre), na.rm = TRUE, method = 'lm', linetype = 'dotted', alpha = 0.5) +
-  geom_smooth(mapping = aes(y = casesch_post), na.rm = TRUE, method = 'lm', linetype = 'dotted', alpha = 0.5) +
+  geom_smooth(mapping = aes(y = casesch_a, color = weekdays(as_of)), na.rm = TRUE, method = 'lm', linetype = 'dotted', alpha = 0) +
+  geom_smooth(mapping = aes(y = casesch_b, color = weekdays(as_of)), na.rm = TRUE, method = 'lm', linetype = 'dotted', alpha = 0) +
+  geom_smooth(mapping = aes(y = casesch_c, color = weekdays(as_of)), na.rm = TRUE, method = 'lm', linetype = 'dotted', alpha = 0) +
+  
+  geom_smooth(mapping = aes(y = casesch_a), na.rm = TRUE, method = 'lm', linetype = 'dotted', alpha = 0.5) +
+  geom_smooth(mapping = aes(y = casesch_b), na.rm = TRUE, method = 'lm', linetype = 'dotted', alpha = 0.5) +
+  geom_smooth(mapping = aes(y = casesch_c), na.rm = TRUE, method = 'lm', linetype = 'dotted', alpha = 0.5) +
   
   geom_point(mapping = aes(y = us_cases_ch), na.rm = TRUE) +
   geom_vline(xintercept = ymd(20200716), linetype = 'dashed') +
@@ -1119,6 +1123,35 @@ my_data %>%
   labs(title = "Ten states with most per capita COVID-19 deaths by month",
        y = "Monthly COVID-19 deaths per million residents",
        x = "Date")
+
+
+```
+
+
+
+
+```{r}
+my_data %>% 
+  inner_join(code_names) %>% 
+  inner_join(st_pop_2019) %>%
+  inner_join(results_2016) %>% 
+  mutate(year_wk = week(as_of)) %>% 
+  group_by(year_wk, code) %>% 
+  summarize(case_ch_pm = 30.5 * mean(case_ch / pop_2019 * 1000000, na.rm = TRUE),
+            death_ch_pm = 30.5 * mean(death_ch / pop_2019 * 1000000, na.rm = TRUE),
+            is_hrc = sum(t_mgn, na.rm = TRUE) < 0,
+            pos_rate = sum(case_ch, na.rm = TRUE) / sum(test_ch, na.rm = TRUE),
+            wk_date = min(as_of, na.rm = TRUE)) %>%
+  filter(case_ch_pm > 0, death_ch_pm > 0) %>% 
+  group_by(wk_date) %>% 
+  top_n(n = 5, death_ch_pm) %>%
+  ggplot(mapping = aes(x = wk_date, y = death_ch_pm, label = code, fill = is_hrc)) +
+  geom_label_repel(direction = "y", segment.color = NA) +
+  theme(legend.position = "none") +
+  labs(title = "Five states with most per capita COVID-19 deaths by week",
+       y = "Monthly COVID-19 deaths per million residents",
+       x = "Date") +
+  xlim(ymd(20200301), today())
 
 
 ```
