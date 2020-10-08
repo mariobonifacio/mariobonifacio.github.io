@@ -1,0 +1,39 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(data.table)
+library(tidyverse)
+library(lubridate)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+```{r}
+pan_data <- tribble(
+~name,              ~year_st,          ~year_end,         ~deaths_k, ~world_pop_m,
+
+"Plague of Athens", ymd("0000-01-01") - years(429), ymd("0000-12-31") - years(426), 100, 162,
+"Antonine Plague",  ymd("0165-01-01"), ymd("0180-12-31"), 5000,      223,
+"Plague of Justinian", ymd("0541-01-01"), ymd("0542-12-31"), 40000,  198,
+"Black Death",      ymd("1347-01-01"), ymd("1352-12-31"), 138000,    443,
+"New WorldSmallpox", ymd("1492-01-01"), ymd("1641-12-31"), 40000,    562,
+"Third Plague",     ymd("1885-01-01"), ymd("1885-12-31"), 12000,     1656,
+"Spanish flu",      ymd("1918-01-01"), ymd("1920-12-31"), 50000,     1860,
+"AIDS",             ymd("1981-01-01"), ymd("2020-12-31"), 35000,     6063,
+"Swine flu",        ymd("2009-01-01"), ymd("2020-12-31"), 200,       7380,
+"COVID-19",         ymd("2020-01-01"), ymd("2020-10-06"), 1044,      7800,
+"COVID-19",         ymd("2020-10-07"), ymd("2021-01-01"), 2343,      7800)
+
+
+)
+```
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.

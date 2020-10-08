@@ -13,26 +13,45 @@ options(scipen = 999)
 library(tidyverse)
 library(ggrepel)
 library("ggthemes")
+library(lubridate)
+library(data.table)
 ```
 
 
 ```{r}
 panda_mics <- read_csv("pandas.csv") %>% 
   filter(!is.na(name)) %>% 
-  mutate(deaths_pm = (signif(deaths / pop * 1000000, 3))) %>% 
+  mutate(as_of = mdy(as_of),
+         deaths_pm = as.integer(signif(deaths / pop * 1000000, 3)),
+         as_of = if_else(yr < 1000, ymd(20001231) - years(2000 - yr), mdy(as_of))) %>% 
   arrange(yr)
 ```
 
 ```{r}
 panda_mics %>% 
   arrange(deaths) %>%
-  ggplot(mapping = aes(y = deaths / 1000000, x = pop/1000000000)) +
-  geom_abline(intercept = 0, slope = 6, color = "gray", linetype = "dashed") +
-  geom_point(color = "white") +
-  theme_dark() +
-  geom_label_repel(box.padding = 0.15, label.padding = 0.1, label.size = .1, segment.color = "black", mapping = aes(label = paste(name, yr, sep = ", ")), ylim = c(-5, 60), xlim = c(-1, 10)) +
-  xlim(-1, 10) +
-  ylim(-5, 60) +
-  labs(x = "World population in billions", y = "Deaths in millions", caption = "Source: wapo.st/deadliest-pandemics", title = "")
+  ggplot(mapping = aes(y = deaths, x = reorder(name, yr))) +
+  # geom_abline(intercept = 0, slope = 6, color = "black", linetype = "dashed") +
+  # theme_dark() +
+  # geom_smooth(method = "lm") +
+  # geom_label_repel(box.padding = 0.15,
+  #                  label.padding = 0.1,
+  #                  label.size = .1,
+  #                  segment.color = "dodgerblue",
+  #                  segment.size = 1.5,
+  #                  arrow = arrow(angle = 30, length = unit(0.15, "inches"),
+  #                                ends = "last", type = "open"),
+  #     mapping = aes(label = paste(name, yr, sep = ", "))
+      # , ylim = c(-5, 60), xlim = c(-1, 10)
+      # ) +
+  # xlim(-1, 10) +
+  # ylim(-5, 60) +
+geom_col() +
+  # geom_label_repel(mapping = aes(label = name)) +
+  labs(x = "World population in billions", y = "Deaths", caption = "Source: census.gov estimates and wapo.st/deadliest-pandemics", title = "") +
+  theme(panel.background = element_rect(fill = "lightgray"),
+        legend.position = "none",
+        axis.title.x = element_blank(),
+        axis.text.x = element_text(angle = 90, hjust = NULL))
 ```
 
