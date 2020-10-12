@@ -272,6 +272,7 @@ test_growth %>%
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
+
 case_growth %>%
   inner_join(code_names) %>% 
   inner_join(my_data) %>% 
@@ -285,6 +286,7 @@ case_growth %>%
   ggplot(mapping = aes(x = reorder(code, X = desc(cases_weekly_per_mil)), y = cases_weekly_per_mil)) +
   geom_col(mapping = aes(fill = pos_rate)) +
   labs(x = "state", y = "Weekly cases per million residents", title = stringr::str_c("States with most new cases per million"), subtitle = str_c("2 weeks ending", case_growth$wk_ending[1], sep = " "), fill = "pos. rate")
+
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
@@ -643,10 +645,11 @@ top_n(death_growth, n = 20) %>%
 death_growth %>%
   inner_join(case_growth) %>%
   inner_join(code_names) %>% 
-  filter((death_weekly_growth > 0.05) |
-           (cases_weekly_growth > 0.05)) %>% 
-  ggplot(mapping = aes(x = death_weekly_growth, y = cases_weekly_growth, color = reg_2)) +
-  ggrepel::geom_text_repel(mapping = aes(label = code)) +
+  filter((death_weekly_growth > 0.03) |
+           (cases_weekly_growth > 0.03)) %>%
+  ggplot(mapping = aes(x = log(death_weekly_growth), y = log(cases_weekly_growth), color = reg_2)) +
+  ggrepel::geom_text_repel(mapping = aes(label = code),
+                           arrow = arrow(length = unit(x = 0.05, units = "npc"))) +
   labs(x = "Weekly growth in deaths", y = "Weekly growth in cases", title = "States where the growth of deaths or new cases are rising", subtitle = str_c("As of ", death_growth[[1, "wk_ending"]])) +
   theme(legend.title=element_blank())
 ```
@@ -662,11 +665,14 @@ death_growth %>%
   filter((death_weekly_growth <= 0.03) |
            (cases_weekly_growth <= 0.03)) %>% 
   ggplot(mapping = aes(x = death_weekly_growth, y = cases_weekly_growth, color = reg_2)) +
-  ggrepel::geom_label_repel(mapping = aes(label = code)) +
+  geom_hline(yintercept = 0) +
+  geom_vline(xintercept = 0) +
+  geom_label_repel(mapping = aes(label = code, color = reg_2),
+                       arrow = arrow(length = unit(x = 0.05, units = "npc"))) +
   labs(x = "Weekly growth in deaths", y = "Weekly growth in cases", title = "States where new deaths or cases are flat or falling", subtitle = str_c("Two weeks ending ", death_growth[[1, "wk_ending"]])) +
   theme(legend.title=element_blank()) +
-  xlim(-.35, .35) +
-  ylim(-.39, .39)
+  xlim(-.05, .05) +
+  ylim(0, .15)
 ```
 
 
@@ -1148,10 +1154,88 @@ my_data %>%
   ggplot(mapping = aes(x = wk_date, y = death_ch_pm, label = code, fill = is_hrc)) +
   geom_label(na.rm = TRUE, position = position_jitter(width = 3, height = 25)) +
   theme(legend.position = "none") +
-  labs(title = "Five states with most per capita COVID-19 deaths by week, as of",
+  labs(subtitle = str_c("Five states with most per capita COVID-19 deaths by week through", max(my_data$as_of, na.rm = TRUE), sep = " "),
        y = "Weekly COVID-19 deaths per million residents",
        x = "Date") +
   xlim(ymd(20200301), today())
 
 
+```
+```{r}
+my_data %>% 
+  inner_join(code_names) %>% 
+  inner_join(st_pop_2019) %>%
+  inner_join(results_2016) %>% 
+  mutate(year_wk = week(as_of)) %>% 
+  group_by(year_wk, code) %>% 
+  summarize(case_ch_pm = 7 * mean(case_ch / pop_2019 * 1000000, na.rm = TRUE),
+            death_ch_pm = 7 * mean(death_ch / pop_2019 * 1000000, na.rm = TRUE),
+            is_hrc = sum(t_mgn, na.rm = TRUE) < 0,
+            pos_rate = sum(case_ch, na.rm = TRUE) / sum(test_ch, na.rm = TRUE),
+            wk_date = min(as_of, na.rm = TRUE)) %>%
+  filter(case_ch_pm > 0, death_ch_pm > 0) %>% 
+  group_by(wk_date) %>% 
+  top_n(n = 3, case_ch_pm) %>%
+  ggplot(mapping = aes(x = wk_date, y = case_ch_pm, label = code, fill = is_hrc)) +
+  geom_label(na.rm = TRUE, position = position_jitter(width = 3, height = 25)) +
+  theme(legend.position = "none") +
+  labs(subtitle = str_c("Five states with most new per capita COVID-19 cases by week through", max(my_data$as_of, na.rm = TRUE), sep = " "),
+       y = "Weekly new COVID-19 cases per million residents",
+       x = "Date") +
+  xlim(ymd(20200301), today())
+
+
+```
+
+
+
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+my_data %>% 
+  inner_join(code_names) %>% 
+  inner_join(st_pop_2019) %>%
+  inner_join(results_2016) %>% 
+  filter(as_of > today() - days(23),
+           weekdays(as_of) == weekdays(max(as_of))) %>%
+  mutate(is_max = (as_of == max(as_of))) %>% 
+  group_by(code, is_max) %>% 
+  summarize(as_of = mean(as_of, na.rm = TRUE),
+            cases = mean(cases, na.rm = TRUE),
+            death = mean(death, na.rm = TRUE),
+            tests = mean(tests, na.rm = TRUE),
+            is_clinton = (sum(t_mgn) < 0)) %>%
+  group_by(code) %>% 
+  ggplot() +
+  geom_smooth(mapping = aes(x = code, y = cases, color = is_clinton), na.rm = TRUE, span = .07) +
+  labs(x = "state", y = "Growth rate of COVID-19 cases", title = "Sun belt states saw the highest COVID-19 case growth rates in June", subtitle = "Growth rate of total COVID-19 cases from 1 to 30 June 2020 by state") +
+  facet_wrap(facets = vars(code, nrow = 4)) +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        axis.title.x  = element_blank(),
+        strip.background = element_rect(fill = "lightgray"),
+        legend.position = 0)
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+my_data %>% 
+  inner_join(code_names) %>% 
+  inner_join(st_pop_2019) %>%
+  inner_join(results_2016) %>% 
+  mutate(is_clinton = t_mgn < 0) %>% 
+  group_by(is_clinton, as_of) %>%
+  summarize(case_ch_pm = sum(case_ch) / sum(pop_2019) * 1000000,
+            death_ch_pm = sum(death_ch) / sum(pop_2019) * 1000000,
+            cases_pm = sum(cases) / sum(pop_2019) * 1000000,
+            death_pm = sum(death) / sum(pop_2019) * 1000000) %>% 
+  filter(cases_pm >= 10) %>% 
+  ggplot() +
+  geom_smooth(mapping = aes(x = as_of, y = case_ch_pm, color = is_clinton, fill = is_clinton), alpha = 0.1, na.rm = TRUE, span = .1) +
+  labs(x = "Date", y = "New cases per day per million", title = "States Trump won have had more COVID-19 cases per capita since June", subtitle = "Daily COVID-19 cases per million residents by state's 2016 winner") +
+  theme(
+    # axis.text = element_blank(),
+    #     axis.ticks = element_blank(),
+    #     axis.title.x  = element_blank(),
+        # strip.background = element_rect(fill = "lightgray"),
+        legend.position = 0)
 ```
