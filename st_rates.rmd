@@ -21,6 +21,8 @@ library(stringr)
 library(readr)
 
 
+
+
 ```
 
 
@@ -175,9 +177,11 @@ Tests & cases
 my_data %>% 
   inner_join(code_names, by = "code") %>% 
   inner_join(st_pop_2019, by = "name") %>%
-  mutate(week_num = lubridate::week(as_of)) %>% 
+  filter(as_of >= Sys.Date() - days(34)) %>% 
+  mutate(case_days = if_else(between(as_of, Sys.Date() - days(34), Sys.Date() - days(14)), 1, 0),
+         death_days = if_else(as_of >= Sys.Date() - days(14), 1, 0)) %>% 
   group_by(code) %>%
-  summarize(cfr = sum(death_ch) / sum(case_ch), reg_2 = min(reg_2)) %>% 
+  summarize(cfr = sum(death_ch * death_days) / sum(case_ch * case_days), reg_2 = min(reg_2)) %>% 
   ggplot(mapping = aes(x = reorder(code, cfr), y = cfr, fill = reg_2)) +
   geom_col() +
   geom_label(mapping = aes(label = code)) +
@@ -193,7 +197,7 @@ Tests & cases
 my_data %>% 
   inner_join(code_names, by = "code") %>% 
   inner_join(st_pop_2019, by = "name") %>%
-  filter(as_of >= Sys.Date() - months(2)) %>% 
+  filter(as_of >= Sys.Date() - weeks(4)) %>% 
   mutate(week_num = lubridate::week(as_of)) %>% 
   group_by(week_num, reg_2) %>%
   summarize(as_of = median(as_of), pos_rate = sum(case_ch) / sum(test_ch)) %>% 
@@ -876,19 +880,28 @@ pop_dens <- read_csv("pop_density.csv") %>%
 
 ```{r}
 my_data %>% 
-  inner_join(results_2016) %>% 
+  inner_join(results_2016) %>%
+  inner_join(pop_dens) %>%
   group_by(code) %>% 
   filter(as_of == max(as_of)) %>% 
-  mutate(hrc = (t_mgn < 0)) %>% 
-  # filter(hrc == FALSE) %>% 
+  mutate(hrc = (t_mgn < 0),
+         tier = case_when(dens >= 400 ~ "F",
+                          between(dens, 200, 400) ~ "E",
+                          between(dens, 100, 200) ~ "D",
+                          between(dens, 50, 100) ~ "C",
+                          between(dens, 25, 50) ~ "B",
+                          dens < 25 ~ "A")) %>% 
   ungroup() %>% 
-  inner_join(pop_dens) %>% 
   mutate(death_pm = death/pop * 1000000) %>% 
-  ggplot(mapping = aes(x = dens, y = log(death_pm), color = hrc, fill = hrc)) +
-  geom_label(mapping = aes(x = dens, y = log(death_pm), label = code, fill = NULL)) +
-  geom_smooth(linetype = 3, method = "lm") +
-  labs(x = "Population per square mile", y = "COVID-19 deaths per million")
-  # facet_wrap(facets = vars(hrc))
+  ggplot(mapping = aes(x = dens, y = log(death_pm))) +
+                       # , color = hrc, fill = hrc)) +
+  geom_label(mapping = aes(x = dens, y = log(death_pm), label = code, fill = NULL, color = hrc)) +
+  # geom_smooth(linetype = 3, method = "lm", alpha = 0.1) +
+  geom_abline(slope = 2.2 / 1200, intercept = 5.6, linetype = 3) +
+  facet_wrap(vars(tier),  scales = "free_x", nrow = 2) +
+  labs(x = "Population per square mile", y = "COVID-19 deaths per million") +
+  theme(legend.position = "none")
+  
 ```
 
 
