@@ -885,12 +885,12 @@ my_data %>%
   group_by(code) %>% 
   filter(as_of == max(as_of)) %>% 
   mutate(hrc = (t_mgn < 0),
-         tier = case_when(dens >= 400 ~ "F",
-                          between(dens, 200, 400) ~ "E",
-                          between(dens, 100, 200) ~ "D",
-                          between(dens, 50, 100) ~ "C",
-                          between(dens, 25, 50) ~ "B",
-                          dens < 25 ~ "A")) %>% 
+         tier = case_when(dens >= 800 ~ "F",
+                          between(dens, 300, 800) ~ "E",
+                          between(dens, 110, 300) ~ "D",
+                          between(dens, 40, 110) ~ "C",
+                          between(dens, 15, 40) ~ "B",
+                          dens < 15 ~ "A")) %>% 
   ungroup() %>% 
   mutate(death_pm = death/pop * 1000000) %>% 
   ggplot(mapping = aes(x = dens, y = log(death_pm))) +
@@ -900,7 +900,8 @@ my_data %>%
   geom_abline(slope = 2.2 / 1200, intercept = 5.6, linetype = 3) +
   facet_wrap(vars(tier),  scales = "free_x", nrow = 2) +
   labs(x = "Population per square mile", y = "COVID-19 deaths per million") +
-  theme(legend.position = "none")
+  theme(legend.position = "none") +
+  ylim(0, 8)
   
 ```
 
@@ -1200,6 +1201,32 @@ my_data %>%
 
 ```
 
+
+```{r}
+my_data %>% 
+  inner_join(code_names) %>% 
+  inner_join(st_pop_2019) %>%
+  inner_join(results_2016) %>% 
+  mutate(year_wk = week(as_of)) %>% 
+  group_by(year_wk, reg_2, code) %>% 
+  summarize(case_ch_pm = 7 * mean(case_ch / pop_2019 * 1000000, na.rm = TRUE),
+            death_ch_pm = 7 * mean(death_ch / pop_2019 * 1000000, na.rm = TRUE),
+            is_hrc = sum(t_mgn, na.rm = TRUE) < 0,
+            pos_rate = sum(case_ch, na.rm = TRUE) / sum(test_ch, na.rm = TRUE),
+            wk_date = min(as_of, na.rm = TRUE)) %>%
+  filter(case_ch_pm > 0, death_ch_pm > 0) %>% 
+  group_by(wk_date) %>% 
+  top_n(n = 3, case_ch_pm) %>%
+  ggplot(mapping = aes(x = wk_date, y = case_ch_pm, label = code, fill = reg_2)) +
+  geom_label(na.rm = TRUE, position = position_jitter(width = 3, height = 25)) +
+  theme(legend.position = "none") +
+  labs(subtitle = str_c("Five states with most new per capita COVID-19 cases by week through", max(my_data$as_of, na.rm = TRUE), sep = " "),
+       y = "Weekly new COVID-19 cases per million residents",
+       x = "Date") +
+  xlim(ymd(20200301), today())
+
+
+```
 
 
 
