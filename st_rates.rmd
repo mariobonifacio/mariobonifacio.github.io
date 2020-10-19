@@ -674,9 +674,7 @@ death_growth %>%
   geom_label_repel(mapping = aes(label = code, color = reg_2),
                        arrow = arrow(length = unit(x = 0.05, units = "npc"))) +
   labs(x = "Weekly growth in deaths", y = "Weekly growth in cases", title = "States where new deaths or cases are flat or falling", subtitle = str_c("Two weeks ending ", death_growth[[1, "wk_ending"]])) +
-  theme(legend.title=element_blank()) +
-  xlim(-.05, .05) +
-  ylim(0, .15)
+  theme(legend.title=element_blank()) 
 ```
 
 
@@ -776,12 +774,13 @@ since_100 %>%
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 since_100 %>%
-  filter(as_of == max(as_of),
-         deaths_pm > 500 | deaths_pm < 100) %>% 
+  filter(as_of >= now() - weeks(2)) %>% 
+  group_by(code) %>% 
+  filter(deaths_pm > quantile(deaths_pm, probs = .8, na.rm = TRUE) | deaths_pm < quantile(deaths_pm, probs = .2, na.rm = TRUE)) %>% 
   arrange(desc(deaths_pm)) %>% 
   ggplot() +
-  geom_col(mapping = aes(x = reorder(code, X = desc(deaths_pm)), y = deaths_pm, fill = reg_2, alpha = death_ch)) +
-  labs(x = "state", y = "Weekly deaths per million residents", title = stringr::str_c("States with most & fewest deaths per million"), subtitle = str_c("2 weeks ending", case_growth$wk_ending[1], sep = " ")) +
+  geom_col(mapping = aes(x = reorder(code, X = desc(deaths_pm)), y = deaths_pm, fill = reg_2)) +
+  labs(x = "state", y = "Weekly deaths per million residents", title = stringr::str_c("States with most & fewest deaths per million"), subtitle = str_c("As of ", case_growth$wk_ending[1], sep = " ")) +
   theme(legend.title=element_blank())
 ```
 
@@ -1189,7 +1188,7 @@ my_data %>%
             wk_date = min(as_of, na.rm = TRUE)) %>%
   filter(case_ch_pm > 0, death_ch_pm > 0) %>% 
   group_by(wk_date) %>% 
-  top_n(n = 3, case_ch_pm) %>%
+  top_n(n = 10, case_ch_pm) %>%
   ggplot(mapping = aes(x = wk_date, y = case_ch_pm, label = code, fill = is_hrc)) +
   geom_label(na.rm = TRUE, position = position_jitter(width = 3, height = 25)) +
   theme(legend.position = "none") +
@@ -1228,6 +1227,31 @@ my_data %>%
 
 ```
 
+```{r}
+my_data %>% 
+  inner_join(code_names) %>% 
+  inner_join(st_pop_2019) %>%
+  inner_join(results_2016) %>% 
+  mutate(year_wk = week(as_of)) %>% 
+  group_by(year_wk, reg_2, code) %>% 
+  summarize(case_ch_pm = 7 * mean(case_ch / pop_2019 * 1000000, na.rm = TRUE),
+            death_ch_pm = 7 * mean(death_ch / pop_2019 * 1000000, na.rm = TRUE),
+            is_hrc = sum(t_mgn, na.rm = TRUE) < 0,
+            pos_rate = sum(case_ch, na.rm = TRUE) / sum(test_ch, na.rm = TRUE),
+            wk_date = min(as_of, na.rm = TRUE)) %>%
+  filter(case_ch_pm > 0, death_ch_pm > 0) %>% 
+  group_by(wk_date) %>% 
+  top_n(n = 3, case_ch_pm) %>%
+  ggplot(mapping = aes(x = wk_date, y = death_ch_pm, label = code, fill = reg_2)) +
+  geom_label(na.rm = TRUE, position = position_jitter(width = 3, height = 25)) +
+  theme(legend.position = "none") +
+  labs(subtitle = str_c("Five states with most per capita COVID-19 deaths by week through", max(my_data$as_of, na.rm = TRUE), sep = " "),
+       y = "Weekly COVID-19 deaths per million residents",
+       x = "Date") +
+  xlim(ymd(20200301), today())
+
+
+```
 
 
 ```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
