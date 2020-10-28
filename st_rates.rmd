@@ -710,8 +710,6 @@ my_data %>%
   top_n(10) %>%
   mutate(y_label = deaths_pm, x_label = as_of) %>% 
   select(code, y_label, x_label) %>% 
-  
-  
   inner_join(my_data) %>% 
   arrange(code, as_of) %>% 
   inner_join(code_names) %>% 
@@ -754,7 +752,7 @@ since_100_labels <- since_100 %>%
   group_by(code) %>% 
   summarize(lab_days = max(days_in), lab_deaths = max(deaths_pm))
 
-test_code <- c("MN", "TX", "AZ", "CA", "FL", "OK", "MN", "NY")
+test_code <- c("MN", "TX", "AZ", "CA", "FL", "OK", "MN", "NY", "NJ", "ND", "SD")
 
 since_100 %>%
   filter(code %in% test_code) %>%
@@ -1418,26 +1416,60 @@ my_data %>%
 ```
 
 
+Determine weekday factors
 ```{r}
-my_data %>% 
-  filter(code == 'IL',
-         as_of >= today() - months(2)) %>% 
+wday_fact <- my_data %>% 
+  filter(as_of >= today() - months(1)) %>% 
   mutate(wk_num = week(as_of),
-         wkday = lubridate::wday(as_of)) %>% 
-  group_by(wk_num) %>% 
+         wkday = lubridate::wday(as_of),
+         case_ch = if_else(case_ch == 0, 1L, case_ch),
+         death_ch = if_else(death_ch == 0, 1L, death_ch)) %>% 
+  group_by(code, wk_num) %>% 
   mutate(wday_case_local = case_ch / mean(case_ch, na.rm = TRUE),
          wday_death_local = death_ch / mean(death_ch, na.rm = TRUE)) %>% 
   ungroup() %>% 
-  group_by(wkday) %>% 
-  mutate(wday_case_global = mean(wday_case_local, na.rm = TRUE),
-         wday_death_global = mean(wday_death_local, na.rm = TRUE),
-         case_ch_adj = case_ch / wday_case_global,
-         death_ch_adj = death_ch / wday_case_global) %>%
-  ggplot() +
-  geom_line(mapping = aes(x = as_of, y = death_ch), color = "gray", size = 3) +
-  geom_line(mapping = aes(x = as_of, y = death_ch_adj), color = "black")
+  group_by(code, wkday) %>% 
+  summarize(wday_case_global = mean(wday_case_local, na.rm = TRUE),
+         wday_death_global = mean(wday_death_local, na.rm = TRUE))
          
   
   
 ```
 
+```{r}
+my_data %>% 
+  inner_join(wday_fact) %>% 
+  inner_join(results_2016) %>% 
+  group_by(code) %>%
+  mutate(case_ch_adj = wday_case_global * case_ch,
+         death_ch_adj = wday_death_global * death_ch,
+         t_day = wkday + 1) %>% 
+  filter(case_ch_adj == max(case_ch_adj, na.rm = TRUE) &
+         as_of == max(as_of)) %>%
+  mutate(day_name = lubridate::wday(x = t_day, label = TRUE)) %>% 
+  ggplot(mapping = aes(x = code, y = case_ch_adj)) +
+  geom_col() +
+  geom_label(mapping = aes(label = day_name)) +
+  labs(subtitle = "States with record adjusted new cases reported today")
+
+
+```
+
+
+```{r}
+my_data %>% 
+  inner_join(wday_fact) %>% 
+  inner_join(results_2016) %>% 
+  group_by(code) %>%
+  mutate(case_ch_adj = wday_case_global * case_ch,
+         death_ch_adj = wday_death_global * death_ch) %>% 
+  filter(death_ch_adj == max(death_ch_adj, na.rm = TRUE) &
+         as_of == max(as_of)) %>%
+  mutate(day_name = lubridate::wday(wkday + 1, label = TRUE)) %>% 
+  ggplot(mapping = aes(x = code, y = death_ch_adj)) +
+  geom_col() +
+  geom_label(mapping = aes(label = day_name)) +
+  labs(subtitle = "States with record adjusted deaths reported today")
+
+
+```
