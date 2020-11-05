@@ -1270,7 +1270,7 @@ my_data %>%
             wk_date = min(as_of, na.rm = TRUE)) %>%
   filter(case_ch_pm > 0, death_ch_pm > 0) %>% 
   group_by(wk_date) %>% 
-  top_n(n = 3, case_ch_pm) %>%
+  top_n(n = 5, case_ch_pm) %>%
   mutate(wk_dens = mean(dens, na.rm = TRUE)) %>% 
   ggplot(mapping = aes(x = wk_date, y = case_ch_pm)) +
   geom_label(mapping = aes(label = code, fill = reg_2), na.rm = TRUE, position = position_jitter(width = 3, height = 25)) +
@@ -1278,8 +1278,10 @@ my_data %>%
   labs(subtitle = str_c("Five states with most new per capita COVID-19 cases by week through", max(my_data$as_of, na.rm = TRUE), sep = " "),
        y = "Weekly new COVID-19 cases per million residents",
        x = "Date",
-       legend = NULL) +
-  xlim(ymd(20200301), today())
+       legend = NULL,
+       caption = "Gray bars represent mean population density of top states") +
+  xlim(ymd(20200301), today()) +
+  theme(legend.title = element_blank())
 
 
 ```
@@ -1301,7 +1303,9 @@ my_data %>%
   top_n(n = 5, case_ch_pm) %>%
   ggplot(mapping = aes(x = wk_date, y = death_ch_pm, label = code, fill = reg_2)) +
   geom_label(na.rm = TRUE, position = position_jitter(width = 3, height = 25)) +
-  theme(legend.position = "none") +
+  theme(
+    # legend.position = "none"
+    legend.title = element_blank()) +
   labs(subtitle = str_c("Five states with most per capita COVID-19 deaths by week through", max(my_data$as_of, na.rm = TRUE), sep = " "),
        y = "Weekly COVID-19 deaths per million residents",
        x = "Date") +
@@ -1328,7 +1332,9 @@ my_data %>%
   top_n(n = 5, case_ch_pm) %>%
   ggplot(mapping = aes(x = wk_date, y = death_ch_pm, label = code, fill = reg_2)) +
   geom_label(na.rm = TRUE, position = position_jitter(width = 3, height = 25)) +
-  theme(legend.position = "none") +
+  theme(
+    # legend.position = "none"
+    legend.title = element_blank()) +
   labs(subtitle = str_c("Five states with most per capita COVID-19 deaths by week through", max(my_data$as_of, na.rm = TRUE), sep = " "),
        y = "Weekly COVID-19 deaths per million residents",
        x = "Date") +
@@ -1435,6 +1441,24 @@ wday_fact <- my_data %>%
   
   
 ```
+
+```{r}
+my_data %>% 
+  mutate(wkday = lubridate::wday(as_of)) %>% 
+  inner_join(wday_fact) %>% 
+  filter(code == "CA", as_of > today() - weeks(2)) %>% 
+  mutate(case_ch_adj = case_ch / wday_case_global,
+         death_ch_adj = death_ch / wday_death_global,
+         t_day = wkday + 1) %>% 
+  mutate(day_name = lubridate::wday(x = t_day, label = TRUE)) %>%
+  ggplot(mapping = aes(x = as_of)) +
+  geom_line(mapping = aes(y = case_ch), color = "gray", size = 3) +
+  geom_line(mapping = aes(y = case_ch_adj))
+
+
+```
+
+
 
 ```{r}
 my_data %>% 
