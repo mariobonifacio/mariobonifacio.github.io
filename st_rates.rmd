@@ -904,6 +904,30 @@ my_data %>%
   
 ```
 
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+my_data %>% 
+  inner_join(code_names) %>% 
+  inner_join(st_pop_2019) %>%
+  inner_join(results_2016) %>% 
+  mutate(is_clinton = t_mgn < 0) %>% 
+  group_by(as_of) %>%
+  summarize(case_ch_pm = sum(case_ch) / sum(pop_2019) * 1000000,
+            death_ch_pm = sum(death_ch) / sum(pop_2019) * 1000000,
+            cases_pm = sum(cases) / sum(pop_2019) * 1000000,
+            death_pm = sum(death) / sum(pop_2019) * 1000000) %>% 
+  filter(cases_pm >= 10) %>% 
+  ggplot(mapping = aes(x = as_of, y = case_ch_pm)) +
+  geom_point() +
+  geom_smooth(alpha = 0.2, na.rm = TRUE, span = 0.1) +
+  labs(x = "Date", y = "Cumulative cases per million", title = "States Trump won have had more COVID-19 cases per capita since June", subtitle = "Daily COVID-19 cases per million residents") +
+  theme(
+    # axis.text = element_blank(),
+    #     axis.ticks = element_blank(),
+    #     axis.title.x  = element_blank(),
+        # strip.background = element_rect(fill = "lightgray"),
+        legend.position = 0)
+```
+
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 my_data %>% 
@@ -1246,7 +1270,8 @@ my_data %>%
   ggplot(mapping = aes(x = wk_date, y = case_ch_pm, label = code, fill = is_hrc)) +
   geom_label(na.rm = TRUE, position = position_jitter(width = 3, height = 25)) +
   theme(legend.position = "none") +
-  labs(subtitle = str_c("Five states with most new per capita COVID-19 cases by week through", max(my_data$as_of, na.rm = TRUE), sep = " "),
+  labs(title = "Since June, states that voted for President Trump have led infection rates",
+       subtitle = str_c("Five states with most new per capita COVID-19 cases by week through", max(my_data$as_of, na.rm = TRUE), sep = " "),
        y = "Weekly new COVID-19 cases per million residents",
        x = "Date") +
   xlim(ymd(20200301), today())
