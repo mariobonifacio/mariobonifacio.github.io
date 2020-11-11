@@ -1522,3 +1522,54 @@ my_data %>%
 
 
 ```
+
+```{r}
+my_data %>% 
+  inner_join(code_names) %>% 
+  inner_join(st_pop_2019) %>%
+  inner_join(results_2016) %>% 
+  mutate(year_wk = week(as_of)) %>% 
+  filter(code %in% c("CA", "FL")) %>% 
+  group_by(year_wk, code) %>% 
+  summarize(case_ch_pm = 7 * mean(case_ch / pop_2019 * 1000000, na.rm = TRUE),
+            death_ch_pm = 7 * mean(death_ch / pop_2019 * 1000000, na.rm = TRUE),
+            is_hrc = sum(t_mgn, na.rm = TRUE) < 0,
+            pos_rate = sum(case_ch, na.rm = TRUE) / sum(test_ch, na.rm = TRUE),
+            wk_date = min(as_of, na.rm = TRUE)) %>%
+  filter(case_ch_pm > 0, death_ch_pm > 0) %>% 
+  group_by(wk_date) %>% 
+  top_n(n = 3, death_ch_pm) %>%
+  ggplot(mapping = aes(x = wk_date, y = death_ch_pm, label = code, fill = code, color = code)) +
+  labs(subtitle = str_c("Five states with most per capita COVID-19 deaths by week through", max(my_data$as_of, na.rm = TRUE), sep = " "),
+       y = "Weekly COVID-19 deaths per million residents",
+       x = "Date") +
+  xlim(ymd(20200301), today()) +
+  geom_smooth()
+
+```
+
+
+```{r}
+my_data %>% 
+  inner_join(code_names) %>% 
+  inner_join(st_pop_2019) %>%
+  inner_join(results_2016) %>% 
+  mutate(year_wk = week(as_of)) %>% 
+  filter(code %in% c("CA", "FL")) %>% 
+  group_by(year_wk, code) %>% 
+  summarize(case_ch_pm = 7 * mean(case_ch / pop_2019 * 1000000, na.rm = TRUE),
+            death_ch_pm = 7 * mean(death_ch / pop_2019 * 1000000, na.rm = TRUE),
+            is_hrc = sum(t_mgn, na.rm = TRUE) < 0,
+            pos_rate = sum(case_ch, na.rm = TRUE) / sum(test_ch, na.rm = TRUE),
+            wk_date = min(as_of, na.rm = TRUE)) %>%
+  filter(case_ch_pm > 0, death_ch_pm > 0) %>% 
+  group_by(wk_date) %>% 
+  top_n(n = 3, case_ch_pm) %>%
+  ggplot(mapping = aes(x = wk_date, y = case_ch_pm, label = code, fill = code, color = code)) +
+  labs(subtitle = str_c("Five states with most per capita COVID-19 deaths by week through", max(my_data$as_of, na.rm = TRUE), sep = " "),
+       y = "Weekly COVID-19 deaths per million residents",
+       x = "Date") +
+  xlim(ymd(20200301), today()) +
+  geom_smooth()
+
+```
