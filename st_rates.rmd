@@ -98,7 +98,7 @@ test_growth <- code_names %>%
   inner_join(st_pop_2019) %>% 
   inner_join(my_data) %>% 
   group_by(code) %>% 
-  filter(as_of > as_date(ymd_hms(now())) - 14) %>%
+  filter(as_of > as_date(ymd_hms(now())) - 7) %>%
   summarize(test_weekly_growth = round((max(tests) - min(tests)) / min(tests), 2),
             tests_weekly_per_mil = signif(((max(tests) - min(tests)) / mean(pop_2019) * 1000000), 3),
             wk_ending = max(as_of)) %>% 
@@ -110,7 +110,7 @@ death_growth <- code_names %>%
   inner_join(st_pop_2019) %>% 
   inner_join(my_data) %>% 
   group_by(code) %>% 
-  filter(as_of > as_date(ymd_hms(now())) - 14) %>%
+  filter(as_of > as_date(ymd_hms(now())) - 7) %>%
   summarize(death_weekly_growth = round((max(death) - min(death)) / min(death), 2), death_weekly_per_mil = signif(sum(death_ch) / mean(pop_2019) * 1000000 / 2, 3), wk_ending = max(as_of)) %>% 
   arrange(desc(death_weekly_growth))
 ```
@@ -134,7 +134,7 @@ case_growth <- code_names %>%
   inner_join(st_pop_2019) %>% 
   inner_join(my_data) %>% 
   group_by(code) %>% 
-  filter(as_of > as_date(ymd_hms(now())) - 14) %>%
+  filter(as_of > as_date(ymd_hms(now())) - 7) %>%
   summarize(cases_weekly_growth = round((max(cases) - min(cases)) / min(cases), 2), cases_weekly_per_mil = signif(((max(cases) - min(cases)) / mean(pop_2019) * 1000000 / 2), 3), wk_ending = max(as_of)) %>% 
   arrange(desc(cases_weekly_growth))
 ```
@@ -151,7 +151,7 @@ test_growth %>%
          | (tests_weekly_per_mil > quantile(test_growth$tests_weekly_per_mil, probs = 0.8, na.rm = TRUE))) %>% 
   ggplot() +
   geom_col(mapping = aes(x = reorder(x = code, X = tests_weekly_per_mil), y = tests_weekly_per_mil, fill = reg_2)) +
-  labs(x = "state", y = "Weekly tests per million residents", title = stringr::str_c("States with the fewest and most tests per million"), subtitle = str_c("2 weeks ending", death_growth$wk_ending[1], sep = " ")) +
+  labs(x = "state", y = "Weekly tests per million residents", title = stringr::str_c("States with the fewest and most tests per million"), subtitle = str_c("One week ending", death_growth$wk_ending[1], sep = " ")) +
   theme(legend.title=element_blank())
 ```
 
@@ -161,7 +161,7 @@ Tests & cases
 my_data %>% 
   inner_join(code_names, by = "code") %>% 
   inner_join(st_pop_2019, by = "name") %>%
-  filter(as_of >= Sys.Date() - weeks(2)) %>% 
+  filter(as_of >= Sys.Date() - days(7)) %>% 
   mutate(week_num = lubridate::week(as_of)) %>% 
   group_by(code) %>%
   summarize(pos_rate = sum(case_ch) / sum(test_ch), reg_2 = min(reg_2)) %>% 
@@ -170,7 +170,7 @@ my_data %>%
   ggplot(mapping = aes(x = reorder(code, pos_rate), y = pos_rate, fill = reg_2)) +
   geom_col() +
   geom_label(mapping = aes(label = code)) +
-  labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates remain high in the Midwest and plains", subtitle = str_c("Two weeks ending  ", max(my_data$as_of))) +
+  labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates remain high in the Midwest and plains", subtitle = str_c("Week ending  ", max(my_data$as_of))) +
   theme(legend.title = element_blank(), axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
 
@@ -179,9 +179,9 @@ Tests & cases
 my_data %>% 
   inner_join(code_names, by = "code") %>% 
   inner_join(st_pop_2019, by = "name") %>%
-  filter(as_of >= Sys.Date() - days(34)) %>% 
-  mutate(case_days = if_else(between(as_of, Sys.Date() - days(34), Sys.Date() - days(14)), 1, 0),
-         death_days = if_else(as_of >= Sys.Date() - days(14), 1, 0)) %>% 
+  filter(as_of >= Sys.Date() - days(7)) %>% 
+  mutate(case_days = if_else(between(as_of, Sys.Date() - days(6), Sys.Date() - days(6)), 1, 0),
+         death_days = if_else(as_of >= Sys.Date() - days(6), 1, 0)) %>% 
   group_by(code) %>%
   summarize(cfr = sum(death_ch * death_days) / sum(case_ch * case_days), reg_2 = min(reg_2)) %>% 
   ggplot(mapping = aes(x = reorder(code, cfr), y = cfr, fill = reg_2)) +
@@ -205,7 +205,7 @@ my_data %>%
   summarize(as_of = median(as_of), pos_rate = sum(case_ch) / sum(test_ch)) %>% 
   ggplot(mapping = aes(x = as_of, y = pos_rate, color = reg_2, fill = reg_2)) +
   geom_smooth(alpha = .05, span = .5) +
-  labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates are trending downward", subtitle = str_c("Two months ending  ", max(my_data$as_of))) +
+  labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates are trending upward", subtitle = str_c("Month ending  ", max(my_data$as_of))) +
   theme(legend.title = element_blank())
 ```
 
@@ -215,11 +215,11 @@ Tests & cases
 my_data %>% 
   inner_join(code_names, by = "code") %>% 
   inner_join(st_pop_2019, by = "name") %>%
-  filter(as_of >= Sys.Date() - months(2)) %>% 
+  filter(as_of >= Sys.Date() - months(1)) %>% 
   mutate(week_num = lubridate::week(as_of)) %>% 
   group_by(week_num, reg_2) %>%
   summarize(as_of = median(as_of), pos_rate = sum(case_ch) / sum(test_ch), wk_test = sum(test_ch)) %>% 
-  ggplot(mapping = aes(x = as_of, y = pos_rate, color = reg_2, fill = reg_2, alpha = wk_test)) +
+  ggplot(mapping = aes(x = as_of, y = pos_rate, color = reg_2, fill = reg_2)) +
   geom_smooth(span = .5) +
   geom_line() +
   labs(x = "Date", y = "Share of COVID-19 tests with positive results", title = "Positive rates remain high in the South and Southwest", subtitle = str_c("Two months ending  ", max(my_data$as_of))) +
@@ -286,12 +286,12 @@ case_growth %>%
   filter(cases_weekly_per_mil > quantile(case_growth$cases_weekly_per_mil, probs = 0.8, na.rm = TRUE) |
            cases_weekly_per_mil < quantile(case_growth$cases_weekly_per_mil, probs = 0.2, na.rm = TRUE)) %>% 
   group_by(code) %>% 
-  filter(as_of >= today() - days(14) ) %>% 
+  filter(as_of >= today() - days(6) ) %>% 
   mutate(pos_rate = sum(case_ch) / sum(test_ch)) %>% 
   ungroup() %>% 
   ggplot(mapping = aes(x = reorder(code, X = desc(cases_weekly_per_mil)), y = cases_weekly_per_mil)) +
   geom_col(mapping = aes(fill = pos_rate)) +
-  labs(x = "state", y = "Weekly cases per million residents", title = stringr::str_c("States with most new cases per million"), subtitle = str_c("2 weeks ending", case_growth$wk_ending[1], sep = " "), fill = "pos. rate")
+  labs(x = "state", y = "Weekly cases per million residents", title = stringr::str_c("States with most new cases per million"), subtitle = str_c("Week ending", case_growth$wk_ending[1], sep = " "), fill = "pos. rate")
 
 ```
 
@@ -303,12 +303,12 @@ death_growth %>%
            death_weekly_per_mil < quantile(death_growth$death_weekly_per_mil, probs = 0.2, na.rm = TRUE)) %>% 
   inner_join(my_data) %>%
   group_by(code) %>% 
-  filter(as_of >= today() - days(14) ) %>% 
+  filter(as_of >= today() - days(6) ) %>% 
   mutate(cfr = sum(death_ch) / sum(case_ch)) %>% 
   ungroup() %>%
   ggplot() +
   geom_col(mapping = aes(x = reorder(code, X = desc(death_weekly_per_mil)), y = death_weekly_per_mil, fill = cfr)) +
-  labs(x = "state", y = "Weekly deaths per million residents", title = stringr::str_c("States with most & fewest deaths per million"), subtitle = str_c("2 weeks ending", case_growth$wk_ending[1], sep = " ")) +
+  labs(x = "state", y = "Weekly deaths per million residents", title = stringr::str_c("States with most & fewest deaths per million"), subtitle = str_c("Week ending", case_growth$wk_ending[1], sep = " ")) +
   theme(legend.title=element_blank())
 ```
 
@@ -501,7 +501,7 @@ pk <- c("AZ")
 
 my_data %>% 
   filter(code %in% pk) %>%
-    mutate(death_ch = if_else(as_of == ymd("2020-04-30") & code == "TX", 50, as.double(death_ch))) %>% 
+    mutate(death_ch = if_else(as_of == ymd("2020-04-30") & code == pk, 50, as.double(death_ch))) %>% 
   group_by(as_of) %>%
   summarize(us_cases = sum(cases, na.rm = TRUE),
             us_cases_ch = sum(case_ch, na.rm = TRUE),
@@ -589,6 +589,8 @@ my_data %>%
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 pk <- c("NY", "NJ", "MA", "CT", "RI", "NH", "VT", "ME", "CA", "OR", "WA")
+
+pk <- "CA"
 
 my_data %>% 
   inner_join(code_names) %>% 
@@ -1550,26 +1552,45 @@ my_data %>%
 
 
 ```{r}
-my_data %>% 
+nation_data <- my_data %>% 
   inner_join(code_names) %>% 
   inner_join(st_pop_2019) %>%
   inner_join(results_2016) %>% 
   mutate(year_wk = week(as_of)) %>% 
-  filter(code %in% c("CA", "FL")) %>% 
-  group_by(year_wk, code) %>% 
-  summarize(case_ch_pm = 7 * mean(case_ch / pop_2019 * 1000000, na.rm = TRUE),
-            death_ch_pm = 7 * mean(death_ch / pop_2019 * 1000000, na.rm = TRUE),
-            is_hrc = sum(t_mgn, na.rm = TRUE) < 0,
+  # filter(code %in% c("CA")) %>% 
+  group_by(year_wk) %>% 
+  summarize(case_ch_pm = 7 * mean(sum(case_ch) / sum(pop_2019) * 1000000, na.rm = TRUE),
+            death_ch_pm = 7 * mean(sum(death_ch) / sum(pop_2019) * 1000000, na.rm = TRUE),
             pos_rate = sum(case_ch, na.rm = TRUE) / sum(test_ch, na.rm = TRUE),
             wk_date = min(as_of, na.rm = TRUE)) %>%
-  filter(case_ch_pm > 0, death_ch_pm > 0) %>% 
-  group_by(wk_date) %>% 
-  top_n(n = 3, case_ch_pm) %>%
-  ggplot(mapping = aes(x = wk_date, y = case_ch_pm, label = code, fill = code, color = code)) +
-  labs(subtitle = str_c("Five states with most per capita COVID-19 deaths by week through", max(my_data$as_of, na.rm = TRUE), sep = " "),
+  filter(case_ch_pm > 0, death_ch_pm > 0)
+
+```
+
+
+
+```{r}
+
+nation_data %>% 
+  ggplot(mapping = aes(x = wk_date, y = case_ch_pm)) +
+  labs(subtitle = str_c("Per capita COVID-19 cases by week through", max(my_data$as_of, na.rm = TRUE), sep = " "),
+       y = "Weekly COVID-19 cases per million residents",
+       x = "Date") +
+  xlim(ymd(20200301), today()) +
+  geom_smooth(span = 0.2, na.rm = TRUE)
+
+```
+
+
+
+```{r}
+nation_data %>% 
+  ggplot(mapping = aes(x = wk_date, y = death_ch_pm)) +
+  labs(subtitle = str_c("Per capita COVID-19 deaths by week through", max(my_data$as_of, na.rm = TRUE), sep = " "),
        y = "Weekly COVID-19 deaths per million residents",
        x = "Date") +
   xlim(ymd(20200301), today()) +
-  geom_smooth()
-
+  geom_line(na.rm = TRUE)
 ```
+
+
