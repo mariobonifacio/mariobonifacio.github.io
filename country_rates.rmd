@@ -246,7 +246,7 @@ j <- rbind(j, data.table(d_offset = i, cor_offset = my_kor %>%
     cor(x = ., y = my_kor$cases, use = "complete.obs")))
 }
 
-j[order(-cor_offset)]
+j
 
 my_kor %>% 
   mutate(d_as_of = as_of - days(20)) %>% 
@@ -285,7 +285,7 @@ nord_labor %>%
   summarize(as_of = max(DATE, na.rm = TRUE), unemp = max(unemp, na.rm = TRUE) - min(unemp, na.rm = TRUE)) %>% 
   left_join(my_oecd) %>% 
   ggplot() +
-  geom_label(mapping = aes(x = cases_pm, y = unemp, color = co_code, label = str_c(co_code))) +
+  geom_label(mapping = aes(x = deaths_pm, y = unemp, color = co_code, label = str_c(co_code))) +
   labs(x = "COVID-19 cases per million", y = str_c("change in unemployment rate from Jan 2020")) +
   theme(legend.position = "none")
 
