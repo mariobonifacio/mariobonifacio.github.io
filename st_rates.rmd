@@ -860,6 +860,7 @@ my_data %>%
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 pk <- c("CA", "NJ", "NY", "CT", "MI")
+pk <- c("IA", "SD", "ND", "MN", "NE", "MT", "WY")
 
 my_data %>% 
   inner_join(code_names) %>% 
@@ -877,11 +878,14 @@ my_data %>%
   geom_smooth(fill = "white", span = .2) +
   scale_color_fivethirtyeight("sub_group") +
   # geom_smooth(alpha = 0, size = 1) +
-  # geom_vline(xintercept = ymd(20200807), linetype = 2) +
+  geom_vline(xintercept = ymd(20200816), linetype = 2) +
   # geom_vline(xintercept = ymd(20200715), linetype = 2) +
-  # theme(legend.position = "none") +
-  labs(title = str_c(str_c(pk, collapse = ", "), " infection rate has been lower since May", sep = ""), subtitle = "New daily cases per million residents, split by state", x = "date", y = "new daily COVID-19 cases per million residents")
+  labs(title = str_c(str_c(pk, collapse = ", "), " infection rate has been lower since May", sep = ""), subtitle = "New daily cases per million residents, split by state", x = "date", y = "new daily COVID-19 cases per million residents", caption = "The Sturgis Motorcycle Rally is marked at 16 Aug") +
+  ggthemes::theme_hc() +
+  theme(legend.title = element_blank())
+  
 ```
+
 
 ```{r}
 pop_dens <- read_csv("pop_density.csv") %>% 
@@ -1418,7 +1422,8 @@ my_data %>%
   # theme(legend.position = "none") +
   labs(subtitle = str_c("Five states with most per capita COVID-19 deaths by week through", max(my_data$as_of, na.rm = TRUE), sep = " "),
        y = "Weekly COVID-19 deaths per million residents",
-       x = "Date") +
+       x = "Date",
+       legend = "Population density in pop. per sq. mi.") +
   xlim(ymd(20200301), today()) +
   theme_bw()
 ```
@@ -1634,7 +1639,7 @@ st_vector <- code_names %>% select(code) %>% arrange(code) %>% pull(code)
 
 for (k in st_vector) {
   
-for (i in 14:40) {
+for (i in 1:28) {
 j <- rbind(j,
            data.table(code = k,
                       d_offset = i,
@@ -1644,7 +1649,7 @@ j <- rbind(j,
                         left_join(cor_data[code == k], by = c("d_lag" = "as_of")) %>%
                         pull(-1) %>%
                         cor(x = ., y = cor_data[code == k]$cases, use = "complete.obs"),
-           cfr = mean(cor_data[code == k & between(as_of, max(as_of) -14, max(as_of))]$death, na.rm = TRUE) / mean(cor_data[code == k & between(as_of, max(as_of) -14 - i, max(as_of) - i)]$cases, na.rm = TRUE)))
+           cfr = (cor_data[code == k & between(as_of, max(as_of) - 14, max(as_of))]$death) / (cor_data[code == k & between(as_of, max(as_of) -14 - i, max(as_of) - i)]$cases)))
 }
   }
 
@@ -1674,17 +1679,24 @@ my_data %>%
   group_by(code) %>% 
   filter(between(as_of, max(as_of, na.rm = TRUE) - d_offset + 1, max(as_of, na.rm = TRUE) - d_offset + 14)) %>% 
   mutate(as_of_proj = as_of + d_offset,
-         wk_proj = if_else(as_of <= max(as_of, na.rm = TRUE) - 7, 1, 2),
-         death_pm_proj = case_ch * cfr / pop_2019 * 1E6) %>%
+         wk_proj = if_else(as_of <= max(as_of, na.rm = TRUE) - 7, str_c("Week starting ", max(my_data$as_of) + days(1)), str_c("Week starting ", max(my_data$as_of) + days(8))),
+         death_pm_proj_day = case_ch * cfr / pop_2019 * 1E6,
+         two_wk = sum(death_pm_proj_day)) %>%
   ungroup() %>% 
-  group_by(code, wk_proj) %>%
-  summarize(death_pm_proj = sum(death_pm_proj, na.rm = TRUE)) %>% 
-  ggplot(mapping = aes(x = wk_proj, y = sum(death_pm_proj))) +
-  geom_col()
+  group_by(code, wk_proj, two_wk) %>%
+  summarize(death_pm_proj_wk = sum(death_pm_proj_day, na.rm = TRUE)) %>% 
+  ggplot(mapping = aes(y = death_pm_proj_wk, x = wk_proj, label = code)) +
+  geom_label_repel(color = "black", fill = "forestgreen")
   
   
   
 
 
+```
+
+```{r}
+case_death %>% 
+  ggplot(mapping = aes(x = cfr)) +
+  geom_histogram()
 ```
 
