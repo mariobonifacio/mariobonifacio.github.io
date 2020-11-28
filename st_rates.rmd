@@ -284,8 +284,8 @@ case_growth %>%
   inner_join(code_names) %>% 
   inner_join(my_data) %>% 
   arrange(desc(cases_weekly_per_mil)) %>% 
-  filter(cases_weekly_per_mil > quantile(case_growth$cases_weekly_per_mil, probs = 0.8, na.rm = TRUE) |
-           cases_weekly_per_mil < quantile(case_growth$cases_weekly_per_mil, probs = 0.2, na.rm = TRUE)) %>% 
+  filter(cases_weekly_per_mil > quantile(case_growth$cases_weekly_per_mil, probs = 0.7, na.rm = TRUE) |
+           cases_weekly_per_mil < quantile(case_growth$cases_weekly_per_mil, probs = 0.3, na.rm = TRUE)) %>% 
   group_by(code) %>% 
   filter(as_of >= today() - days(13) ) %>% 
   mutate(pos_rate = sum(case_ch) / sum(test_ch)) %>% 
