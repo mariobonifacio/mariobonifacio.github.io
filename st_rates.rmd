@@ -30,7 +30,7 @@ library(ggthemes)
 
 
 Pulling the most recent data from covidtracking.com...
-```{r include=FALSE}
+```{r message=FALSE, warning=FALSE, include=FALSE}
 all_data <- "https://covidtracking.com/api/v1/states/daily.json" %>%
   fromJSON() %>%
   as.data.table()
