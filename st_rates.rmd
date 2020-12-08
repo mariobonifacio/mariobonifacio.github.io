@@ -286,15 +286,21 @@ case_growth %>%
   arrange(desc(cases_weekly_per_mil)) %>% 
   filter(cases_weekly_per_mil > quantile(case_growth$cases_weekly_per_mil, probs = 0.8, na.rm = TRUE) |
            cases_weekly_per_mil < quantile(case_growth$cases_weekly_per_mil, probs = 0.2, na.rm = TRUE) |
-           code == "CA") %>% 
+           code %in% c("CA", "TX", "FL")) %>% 
   group_by(code) %>% 
   filter(as_of >= today() - days(13) ) %>% 
   mutate(pos_rate = sum(case_ch) / sum(test_ch)) %>% 
   ungroup() %>% 
   ggplot(mapping = aes(x = reorder(code, X = desc(cases_weekly_per_mil)), y = cases_weekly_per_mil)) +
   geom_col(mapping = aes(fill = pos_rate)) +
-  labs(x = "state", y = "Weekly cases per million residents", title = stringr::str_c("States with most or least new cases per million"), subtitle = str_c("Week ending", case_growth$wk_ending[1], sep = " "), fill = "pos. rate") +
-  theme_fivethirtyeight()
+  labs(x = "state",
+       y = "Weekly cases per million residents",
+       title = stringr::str_c("States with most or least new cases per million"),
+       subtitle = str_c("Week ending", case_growth$wk_ending[1], sep = " "), fill = "pos. rate",
+       caption = "lighter colors indicate higher positive rate"
+       ) +
+  theme_fivethirtyeight() +
+  theme(legend.position = "none")
 
 ```
 
@@ -881,7 +887,7 @@ my_data %>%
   # geom_smooth(alpha = 0, size = 1) +
   geom_vline(xintercept = ymd(20200816), linetype = 2) +
   # geom_vline(xintercept = ymd(20200715), linetype = 2) +
-  labs(title = str_c(str_c(pk, collapse = ", "), " infection rate has been lower since May", sep = ""), subtitle = "New daily cases per million residents, split by state", x = "date", y = "new daily COVID-19 cases per million residents", caption = "The Sturgis Motorcycle Rally is marked at 16 Aug") +
+  labs(title = str_c(str_c(pk, collapse = ", "), " infection rate has been higher since Aug", sep = ""), subtitle = "New daily cases per million residents, split by state", x = "date", y = "new daily COVID-19 cases per million residents", caption = "The Sturgis Motorcycle Rally is marked at 16 Aug") +
   ggthemes::theme_hc() +
   theme(legend.title = element_blank())
   
@@ -954,7 +960,7 @@ my_data %>%
   filter(cases_pm >= 10) %>% 
   ggplot(mapping = aes(x = as_of, y = case_ch_pm)) +
   geom_smooth(alpha = 0.2, na.rm = TRUE, span = 0.1) +
-  labs(x = "Date", y = "Cumulative cases per million", title = "The U.S. has crested over its third wave", subtitle = "Daily COVID-19 cases per million residents") +
+  labs(x = "Date", y = "Cumulative cases per million", title = "The U.S. is in its third wave", subtitle = "Daily COVID-19 cases per million residents") +
   theme(
     # axis.text = element_blank(),
     #     axis.ticks = element_blank(),
@@ -1635,9 +1641,33 @@ nation_wk %>%
 
 ```{r}
 
+my_data %>% 
+  inner_join(code_names) %>% 
+  inner_join(st_pop_2019) %>%
+  inner_join(results_2016) %>% 
+  filter(lubridate::wday(as_of) == lubridate::wday(max(as_of))) %>%
+  # filter(code %in% c("CA")) %>% 
+  group_by(as_of) %>%
+  summarize(case_ch_pm = 7 * mean(sum(case_ch) / sum(pop_2019) * 1000000, na.rm = TRUE),
+            death_ch_pm = 7 * mean(sum(death_ch) / sum(pop_2019) * 1000000, na.rm = TRUE),
+            test_ch_pm = 7 * mean(sum(test_ch) / sum(pop_2019) * 1000000, na.rm = TRUE),
+            pos_rate = sum(case_ch, na.rm = TRUE) / sum(test_ch, na.rm = TRUE)) %>%
+  filter(case_ch_pm > 0, death_ch_pm > 0) %>% 
+  ggplot(mapping = aes(x = as_of, y = death_ch_pm)) +
+  labs(subtitle = str_c("Per capita COVID-19 deaths by week through", max(my_data$as_of, na.rm = TRUE), sep = " "),
+       y = "Weekly COVID-19 deaths per million residents",
+       x = "Date") +
+  xlim(ymd(20200301), today()) +
+  geom_smooth(na.rm = TRUE, color = "dodgerblue", span = 0.15)
+```
+
+
+```{r}
+
 cor_data <- my_data %>%
-  select(as_of, code, cases, death) %>% 
-  filter(as_of > ymd("20200601"))
+  select(as_of, code, case_ch, death_ch) %>% 
+  filter(as_of > max(as_of) - months(6))
+  
 
 j <- data.table(code = character(), d_offset = integer(), cor_offset = double(), cfr = double())
 
@@ -1645,7 +1675,7 @@ st_vector <- code_names %>% select(code) %>% arrange(code) %>% pull(code)
 
 for (k in st_vector) {
   
-for (i in 1:28) {
+for (i in 10:40) {
 j <- rbind(j,
            data.table(code = k,
                       d_offset = i,
@@ -1654,8 +1684,8 @@ j <- rbind(j,
                         mutate(d_lag = as_of + days(i)) %>%
                         left_join(cor_data[code == k], by = c("d_lag" = "as_of")) %>%
                         pull(-1) %>%
-                        cor(x = ., y = cor_data[code == k]$cases, use = "complete.obs"),
-           cfr = (cor_data[code == k & between(as_of, max(as_of) - 14, max(as_of))]$death) / (cor_data[code == k & between(as_of, max(as_of) -14 - i, max(as_of) - i)]$cases)))
+                        cor(x = ., y = cor_data[code == k]$case_ch, use = "complete.obs"),
+           cfr = (cor_data[code == k & between(as_of, max(as_of) - 14, max(as_of))]$death) / (cor_data[code == k & between(as_of, max(as_of) -14 - i, max(as_of) - i)]$case_ch)))
 }
   }
 
@@ -1704,5 +1734,97 @@ my_data %>%
 case_death %>% 
   ggplot(mapping = aes(x = cfr)) +
   geom_histogram()
+```
+
+
+```{r}
+lag_4wk_data <- my_data %>%
+  select(as_of_lag_4wk = as_of, code, case_ch, test_ch) %>%
+  filter(case_ch * test_ch > 0,
+         test_ch >= case_ch) %>% 
+  mutate(pos_rate_4wk = case_ch / test_ch) %>% 
+  filter(pos_rate_4wk < 0.5) %>% 
+  select(-test_ch, -case_ch)
+
+lag_3wk_data <- my_data %>%
+  select(as_of_lag_3wk = as_of, code, case_ch_3wk = case_ch) %>%
+  filter(case_ch_3wk > 0) 
+
+
+cor_data <- my_data %>%
+  select(as_of, code, death_ch) %>% 
+  filter(as_of > max(as_of) - months(6)) %>% 
+  mutate(as_of_lag_4wk = as_of - weeks(4),
+         as_of_lag_3wk = as_of - weeks(3)) %>%
+  inner_join(lag_4wk_data) %>% 
+  inner_join(lag_3wk_data)
+```
+
+
+```{r}
+lag_1wk_data <- my_data %>%
+  select(as_of_lag_1wk = as_of, code, case_ch, test_ch) %>%
+  filter(case_ch * test_ch > 0,
+         test_ch >= case_ch) %>% 
+  mutate(pos_rate_lag_1wk = case_ch / test_ch) %>% 
+  filter(pos_rate_lag_1wk < 0.5) %>% 
+  select(-test_ch, -case_ch)
+
+lead_3wk_data <- my_data %>%
+  select(as_of_lead_3wk = as_of, code,
+         death_ch_lead_3wk = death_ch) %>%
+  filter(death_ch_lead_3wk > 0)
+
+
+cor_data <- my_data %>%
+  select(as_of, code, case_ch) %>% 
+  filter(as_of > max(as_of) - months(6)) %>% 
+  mutate(as_of_lag_1wk = as_of - weeks(1),
+         as_of_lead_3wk = as_of + weeks(3)) %>%
+  inner_join(lag_1wk_data) %>% 
+  left_join(lead_3wk_data) %>% 
+  arrange(desc(as_of_lead_3wk))
+
+
+```
+
+
+
+
+```{r}
+
+
+# 
+# cor_data %>%
+#     group_by(code) %>% 
+#     mutate(death_ch_proj = lm("death_ch_lead_3wk ~ case_ch + pos_rate_4wk", ., na.action = na.omit[[1]][[1]] +
+#              case_ch * lm("death_ch_lead_3wk ~ case_ch + pos_rate_lag_1wk", ., na.action = na.omit)[[1]][[2]] +
+#              pos_rate_lag_1wk * lm("death_ch_lead_3wk ~ case_ch + pos_rate_lag_1wk", ., na.action = na.omit)[[1]][[3]]))
+
+
+  
+```
+
+```{r}
+
+
+
+
+# lm(data = cor_data, formula = death_ch ~ case_ch * pos_rate)[[1]][[1]]
+# lm(data = cor_data, formula = death_ch ~ case_ch  / pos_rate)[[1]][[2]]
+# 
+# 
+# j <- data.table(code = character(),
+#                 d_offset = integer(),
+#                 cor_offset = double(),
+#                 cfr = double(),
+#                 pos_rate = double())
+# 
+# st_vector <- code_names %>% select(code) %>% arrange(code) %>% pull(code)
+# 
+# for (k in st_vector) {
+#   
+# }
+  
 ```
 

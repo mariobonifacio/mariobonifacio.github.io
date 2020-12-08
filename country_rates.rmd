@@ -178,10 +178,14 @@ weekly_oecd %>%
 
 
 ```{r}
-weekly_oecd %>% 
-  filter(co_code %in% c("CAN", "USA", "GBR")) %>% 
-  ggplot(mapping = aes(x = wk_ending, y = mean_deaths_pm, color = co_code)) +
-  geom_line()
+my_oecd %>% 
+  filter(co_code %in% c("KOR", "USA", "CAN"),
+         cases_pm > 0) %>% 
+  ggplot(mapping = aes(x = as_of, y = cases_pm, color = co_code)) +
+  geom_smooth(size = 2, alpha = 0) +
+  labs(color = NULL,
+       x = "Date",
+       y = "New cases per mil.")
 
 ```
 
