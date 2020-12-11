@@ -1782,7 +1782,7 @@ lead_3wk_data <- my_data %>%
 
 cor_data <- my_data %>%
   select(as_of, code, case_ch) %>% 
-  filter(as_of > max(as_of) - months(3)) %>% 
+  filter(as_of > max(as_of) - months(10)) %>% 
   mutate(as_of_lag_1wk = as_of - weeks(1),
          as_of_lead_3wk = as_of + weeks(3)) %>%
   inner_join(lag_1wk_data) %>% 
@@ -1846,7 +1846,7 @@ proj_table %>%
 
 
 ```{r}
-proj_table %>%
+proj_well <- proj_table %>%
   filter(as_of_lead_3wk > max(my_data$as_of)) %>%
   group_by(code) %>%
   mutate(days_since = as.integer(as_of_lead_3wk - max(my_data$as_of)),
@@ -1862,7 +1862,13 @@ proj_table %>%
 ```
 
 
+
+
+
+
 ```{r}
+
+
 proj_table %>%
   filter(as_of_lead_3wk > max(my_data$as_of)) %>%
   group_by(code) %>%
@@ -1901,10 +1907,19 @@ proj_table %>%
   group_by(code, week_ending) %>% 
   summarize(death_week_proj = signif(sum(death_ch_proj, na.rm = TRUE) / pop_2019 * 1000000, 2), death_day_avg_proj = signif(death_week_proj / 7, 2)) %>% 
   unique() %>% 
-  group_by(week_ending) %>% 
-  top_n(n = 10, wt = death_week_proj) %>% 
+  arrange(week_ending, desc(death_week_proj)) %>% 
+  slice_max(order_by = desc(death_week_proj), n = 10) %>% 
   ggplot() +
-  geom_label_repel(mapping = aes(x = week_ending, y = death_week_proj, label = code)) +
+  geom_col(mapping = aes(x = reorder(code, desc(death_week_proj)), y = death_week_proj, label = code, fill = week_ending)) +
   facet_wrap(facets = vars(week_ending))
   
 ```
+
+
+```{r}
+proj_well %>% 
+  ggplot() +
+  geom_label(mapping = aes(x = week_ending, y = death_week_proj, label = death_week_proj)) +
+  ylim(0,20000)
+```
+
