@@ -1918,8 +1918,9 @@ proj_table %>%
 
 ```{r}
 proj_well %>% 
-  ggplot() +
-  geom_label(mapping = aes(x = week_ending, y = death_week_proj, label = death_week_proj)) +
-  ylim(0,20000)
+    ggplot(mapping = aes(x = week_ending, y = death_week_proj, label = death_week_proj)) +
+  geom_col() +
+  geom_label() +
+  ylim(0, 20000)
 ```
 
