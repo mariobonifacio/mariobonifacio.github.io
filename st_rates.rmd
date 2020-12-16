@@ -44,7 +44,7 @@ print(str_c("Data as of ", ymd(max(all_data[,date]))))
 
 
 Narrowing data...
-```{r include=FALSE}
+```{r Narrow_data, message=FALSE, warning=FALSE, include=FALSE}
 my_data <- all_data %>% 
   mutate(as_of = ymd(date),
          tests = positive + negative,
@@ -1248,6 +1248,33 @@ my_data %>%
   inner_join(st_pop_2019) %>%
   inner_join(results_2016) %>% 
   mutate(year_mo = month(as_of)) %>% 
+  group_by(year_mo, reg_2, code) %>% 
+  summarize(case_ch_pm = 30.5 * mean(case_ch / pop_2019 * 1000000, na.rm = TRUE),
+            death_ch_pm = 30.5 * mean(death_ch / pop_2019 * 1000000, na.rm = TRUE),
+            is_hrc = sum(t_mgn, na.rm = TRUE) < 0,
+            pos_rate = sum(case_ch, na.rm = TRUE) / sum(test_ch, na.rm = TRUE),
+            mo_of = median(ymd(str_c("2020", year_mo, "15", sep = "-")))) %>%
+  filter(case_ch_pm > 0, death_ch_pm > 0) %>% 
+  group_by(year_mo) %>% 
+  top_n(n = 10, case_ch_pm) %>%
+  ggplot(mapping = aes(x = mo_of, y = case_ch_pm, label = code, color = reg_2)) +
+  geom_label(direction = "y", segment.color = NA, position = position_jitter(width = 10, height = 60)) +
+  scale_size(range = c(3, 6)) +
+  theme(legend.title = element_blank()) +
+  labs(x = "month",
+       y = "monthly cases per million",
+       title = "Since June, red states have led in new cases per capita")
+
+```
+
+
+
+```{r}
+my_data %>% 
+  inner_join(code_names) %>% 
+  inner_join(st_pop_2019) %>%
+  inner_join(results_2016) %>% 
+  mutate(year_mo = month(as_of)) %>% 
   group_by(year_mo, code) %>% 
   summarize(case_ch_pm = 30.5 * mean(case_ch / pop_2019 * 1000000, na.rm = TRUE),
             death_ch_pm = 30.5 * mean(death_ch / pop_2019 * 1000000, na.rm = TRUE),
@@ -1398,13 +1425,11 @@ my_data %>%
   filter(case_ch_pm > 0, death_ch_pm > 0) %>% 
   group_by(wk_date) %>% 
   top_n(n = 5, case_ch_pm) %>%
-  ggplot(mapping = aes(x = wk_date, y = death_ch_pm, label = code, fill = reg_2)) +
+  ggplot(mapping = aes(x = wk_date, y = case_ch_pm, label = code, fill = reg_2)) +
   geom_label(na.rm = TRUE, position = position_jitter(width = 3, height = 25)) +
-  theme(
-    # legend.position = "none"
-    legend.title = element_blank()) +
-  labs(subtitle = str_c("Five states with most per capita COVID-19 deaths by week through", max(my_data$as_of, na.rm = TRUE), sep = " "),
-       y = "Weekly COVID-19 deaths per million residents",
+  theme(legend.title = element_blank()) +
+  labs(subtitle = str_c("Five states with most per capita COVID-19 cases through", max(my_data$as_of, na.rm = TRUE), sep = " "),
+       y = "Weekly COVID-19 cases per million residents",
        x = "Date") +
   xlim(ymd(20200301), today())
 
@@ -1924,3 +1949,17 @@ proj_well %>%
   ylim(0, 20000)
 ```
 
+```{r}
+my_data %>% 
+  inner_join(code_names) %>% 
+  inner_join(st_pop_2019) %>%
+  inner_join(results_2016) %>% 
+  group_by(as_of) %>% 
+  summarize(cumulative_deaths = sum(death, na.rm = TRUE)) %>% 
+  filter(cumulative_deaths > 0) %>% 
+  ggplot(aes(as_of, cumulative_deaths)) +
+  geom_line() +
+  geom_label(mapping = aes(x = max(as_of), y = max(cumulative_deaths), label = max(cumulative_deaths)))
+
+
+```

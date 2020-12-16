@@ -1,0 +1,127 @@
+---
+title: "U.S. COVID-19 dashboard"
+output: html_notebook
+---
+
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+
+library(lubridate)
+library(data.table)
+library(tidyverse)
+library(jsonlite)
+library(ggrepel)
+library(stringr)
+library(ggthemes)
+
+```
+
+
+```{r Load_COVID_data, message=FALSE, warning=FALSE, include=FALSE}
+all_data <- fromJSON("https://covidtracking.com/api/v1/states/daily.json") %>% as.data.table()
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+print(str_c("Calculated: ", Sys.time(), " using ", Sys.Date() - ymd(max(all_data[,date])), "-day-old state public health data from ", ymd(max(all_data[,date]))))
+```
+
+
+```{r Narrow_data, message=FALSE, warning=FALSE, include=FALSE}
+my_data <- all_data %>% 
+  mutate(as_of = ymd(date), tests = positive + negative, test_ch = positiveIncrease + negativeIncrease) %>% 
+  select(as_of, code = state, cases = positive, case_ch = positiveIncrease, death, death_ch = deathIncrease, tests, test_ch) %>% 
+  data.table()
+```
+
+
+```{r Adding_state_pop, include=FALSE}
+st_pop_2019 <- read_csv("st_pop.csv") %>% 
+  select(name = 5, pop_2019 = 17) %>% 
+  mutate(pop_2019 = as.integer(pop_2019))
+```
+
+
+```{r Load_regions, message=FALSE, warning=FALSE, include=FALSE}
+code_names <- data.table(cbind(name = c(state.name, "District of Columbia"),
+                 code = c(state.abb, "DC"),
+                 region = as.character(state.region),
+                 reg_2 = c("South", "Plain and Mountain", "Southwest", "Middle South", "West Coast", "Southwest", "Northeast", "Northeast", "South", "South",
+                           "West Coast", "Plain and Mountain", "Midwest", "Midwest", "Midwest", "Plain and Mountain", "Middle South", "South", "Northeast", "Northeast",
+                           "Northeast", "Midwest", "Midwest", "South", "Midwest", "Plain and Mountain", "Plain and Mountain", "Southwest", "Northeast", "Northeast",
+                           "Southwest", "Northeast", "South", "Plain and Mountain", "Midwest", "Plain and Mountain", "West Coast", "Northeast", "Northeast", "South",
+                           "Plain and Mountain", "Middle South", "Southwest", "Plain and Mountain", "Northeast", "South", "West Coast", "Middle South", "Midwest", "Plain and Mountain",
+                           "Northeast")))
+```
+
+
+```{r saving_lifetime echo=FALSE, message=FALSE, warning=FALSE}
+lifetime_data <- my_data %>% 
+  inner_join(code_names) %>% 
+  inner_join(st_pop_2019) %>% 
+  filter(lubridate::wday(as_of) == lubridate::wday(max(as_of))) %>%
+  mutate(is_ca = if_else(code == "CA", "CA", "US")) %>% 
+  group_by(is_ca, as_of) %>% 
+  summarize(cases_pm = sum(cases, na.rm = TRUE) / sum(pop_2019, na.rm = TRUE) * 1000000,
+            deaths_pm =  sum(death, na.rm = TRUE) / sum(pop_2019, na.rm = TRUE) * 1000000,
+            tests_pm = sum(tests, na.rm = TRUE) / sum(pop_2019, na.rm = TRUE) * 1000000) %>% 
+  mutate(case_ch_pm = cases_pm - lag(cases_pm),
+         death_ch_pm = deaths_pm - lag(deaths_pm),
+         test_ch_pm = tests_pm - lag(tests_pm))
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(mapping = aes(x = as_of)) +
+  geom_line(mapping = aes(y = case_ch_pm, color = is_ca)) +
+  
+  
+  
+```
+
+
+
+```{r include=FALSE}
+weekly_data <- code_names %>% 
+  inner_join(st_pop_2019) %>% 
+  inner_join(my_data) %>% 
+  group_by(code) %>%  
+  filter(as_of >= ymd_hms(max(as_of)) - weeks(1) %>%
+  summarize(test_weekly_growth = round((max(tests) - min(tests)) / min(tests), 2),
+            test_weekly_pm = signif(((max(tests) - min(tests)) / mean(pop_2019) * 1000000), 3),
+            case_weekly_growth = round((max(cases) - min(cases)) / min(cases), 2),
+            case_weekly_pm = signif(((max(cases) - min(cases)) / mean(pop_2019) * 1000000), 3),
+            death_weekly_growth = round((max(death) - min(death)) / min(death), 2),
+            death_weekly_pm = signif(((max(death) - min(death)) / mean(pop_2019) * 1000000), 3),
+            wk_ending = max(as_of)))
+```
+
+
+```{r include=FALSE}
+monthly_data <- code_names %>% 
+  inner_join(st_pop_2019) %>% 
+  inner_join(my_data) %>% 
+  group_by(code) %>%  
+  filter(as_of >= ymd_hms(max(as_of)) - months(1) %>%
+  summarize(test_monthly_growth = round((max(tests) - min(tests)) / min(tests), 2),
+            test_monthly_pm = signif(((max(tests) - min(tests)) / mean(pop_2019) * 1000000), 3),
+            case_monthly_growth = round((max(cases) - min(cases)) / min(cases), 2),
+            case_monthly_pm = signif(((max(cases) - min(cases)) / mean(pop_2019) * 1000000), 3),
+            death_monthly_growth = round((max(death) - min(death)) / min(death), 2),
+            death_monthly_pm = signif(((max(death) - min(death)) / mean(pop_2019) * 1000000), 3),
+            wk_ending = max(as_of)))
+```
+
+
+```{r include=FALSE}
+monthly_data <- code_names %>% 
+  inner_join(st_pop_2019) %>% 
+  inner_join(my_data) %>% 
+  group_by(code) %>%  
+  filter(as_of == ymd_hms(max(as_of))) %>%
+  summarize(test_weekly_pm = signif(((max(tests) - min(tests)) / mean(pop_2019) * 1000000), 3),
+            case_weekly_pm = signif(((max(cases) - min(cases)) / mean(pop_2019) * 1000000), 3),
+            death_weekly_pm = signif(((max(death) - min(death)) / mean(pop_2019) * 1000000), 3),
+            wk_ending = max(as_of))
+```
