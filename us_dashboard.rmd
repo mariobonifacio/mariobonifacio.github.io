@@ -90,6 +90,9 @@ weekly_data <- code_names %>%
             case_weekly_pm = signif(((max(cases) - min(cases)) / mean(pop_2019) * 1000000), 3),
             death_weekly_growth = round((max(death) - min(death)) / min(death), 2),
             death_weekly_pm = signif(((max(death) - min(death)) / mean(pop_2019) * 1000000), 3),
+            test_weekly = max(tests, na.rm = TRUE) - min(tests, na.rm = TRUE),
+            case_weekly = max(cases, na.rm = TRUE) - min(cases, na.rm = TRUE),
+            death_weekly = max(death, na.rm = TRUE) - min(death, na.rm = TRUE),
             wk_ending = max(as_of),
             pos_rate = sum(case_ch, na.rm = TRUE) / sum(test_ch, na.rm = TRUE))
 ```
@@ -111,12 +114,23 @@ monthly_data <- code_names %>%
 ```
 
 
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+weekly_data %>%
+  group_by(TRUE) %>% 
+  summarize(us_case_weekly = sum(case_weekly, na.rm = TRUE),
+            us_death_weekly = sum(death_weekly, na.rm = TRUE),
+            us_pos_rate = us_case_weekly / sum(test_weekly, na.rm = TRUE)) %>% 
+  select(2:4)
+```
+
+
+
 ```{r echo=FALSE, message=FALSE, warning=FALSE, echo=FALSE}
 lifetime_data %>% 
   mutate(case_ch_label = if_else(as_of == max(as_of, na.rm = TRUE), is_ca, NULL)) %>% 
   ggplot(mapping = aes(x = as_of, y = case_ch_pm, color = is_ca)) +
   geom_line(size = 2) +
-  geom_label_repel(mapping = aes(label = case_ch_label)) +
+  geom_label(mapping = aes(label = case_ch_label)) +
   theme_bw() +
   theme(legend.position = "none") +
   labs(x = "Date", y = "New cases per million per week", title = "California cases are 300% higher than they've ever been", subtitle = str_c("Through ", max(lifetime_data$as_of)))
@@ -132,8 +146,8 @@ weekly_data %>%
   ggplot(mapping = aes(x = reorder(x = code, X = desc(death_weekly_pm)), y = death_weekly_pm, fill = reg_2)) +
   geom_col() +
   theme_bw() +
-  # theme(legend.position = "none") +
-  labs(x = "Date", y = "Deaths per million per week", title = "Deaths remain high in plains states", subtitle = str_c("Through ", max(weekly_data$wk_ending)))
+  theme(legend.title = element_blank()) +
+  labs(x = "Date", y = "Deaths per million per week", title = "Deaths remain high in plains states", subtitle = str_c("Week ending ", max(weekly_data$wk_ending)))
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
@@ -145,7 +159,7 @@ weekly_data %>%
   geom_col() +
   theme_bw() +
   # theme(legend.position = "none") +
-  labs(x = "Date", y = "cases per million per week", title = "Cases are high in a diverse group of states", subtitle = str_c("Through ", max(weekly_data$wk_ending)))
+  labs(x = "Date", y = "cases per million per week", title = "Cases are high in a diverse group of states", subtitle = str_c("Week ending ", max(weekly_data$wk_ending)))
 
 ```
 
@@ -280,7 +294,7 @@ my_data %>%
   geom_smooth(mapping = aes(y = tot_death_ch, color = is_ca), alpha = 0, span = 0.3, na.rm = TRUE) +
   theme_bw() +
   theme(legend.title = element_blank()) +
-  labs(x = "Date", y = "Deaths per million", title = str_c("The US may see ", signif(sum(proj_table[as_of_lead_3wk > max(my_data$as_of, na.rm = TRUE), "death_ch_proj"]), 2), " deaths in 3 weeks"))
+  labs(x = "Date", y = "Deaths per million", title = str_c("The US may experience ", signif(sum(proj_table[as_of_lead_3wk > max(my_data$as_of, na.rm = TRUE), "death_ch_proj"]), 2), " deaths by ", max(my_data$as_of, na.rm = TRUE) + weeks(3)))
   
 ```
 
