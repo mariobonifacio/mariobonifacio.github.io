@@ -127,13 +127,12 @@ weekly_data %>%
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, echo=FALSE}
 lifetime_data %>% 
-  mutate(case_ch_label = if_else(as_of == max(as_of, na.rm = TRUE), is_ca, NULL)) %>% 
-  ggplot(mapping = aes(x = as_of, y = case_ch_pm, color = is_ca)) +
-  geom_line(size = 2) +
-  geom_label(mapping = aes(label = case_ch_label)) +
+  # mutate(case_ch_label = if_else(as_of == max(as_of, na.rm = TRUE), is_ca, NULL)) %>% 
+  ggplot(mapping = aes(x = as_of, y = case_ch_pm)) +
+  geom_smooth(size = 2, color = "dodgerblue", span = 0.1, alpha = 0) +
   theme_bw() +
   theme(legend.position = "none") +
-  labs(x = "Date", y = "New cases per million per week", title = "California cases are 300% higher than they've ever been", subtitle = str_c("Through ", max(lifetime_data$as_of)))
+  labs(x = "Date", y = "New cases per million per week", title = "U.S. cases are 200% higher than they've ever been", subtitle = str_c("Through ", max(lifetime_data$as_of)))
   
 ```
 
@@ -284,14 +283,17 @@ my_data %>%
   right_join(proj_table, by = c("as_of" = "as_of_lead_3wk" , "code")) %>% 
   inner_join(code_names) %>% 
   inner_join(st_pop_2019) %>% 
-  mutate(is_ca = if_else(code == "CA", "Calif.", "Rest of US"),
+  mutate(
+    # is_ca = if_else(code == "CA", "Calif.", "Rest of US"),
          death_ch_proj = if_else(as_of > max(my_data$as_of, na.rm = TRUE), death_ch_proj, as.double(death_ch))) %>% 
-  group_by(is_ca, as_of) %>% 
+  group_by(
+    # is_ca, 
+    as_of) %>% 
   summarize(tot_death_ch = sum(death_ch) / sum(pop_2019) * 1000000,
             tot_death_ch_proj = sum(death_ch_proj) / sum(pop_2019) * 1000000) %>% 
   ggplot(mapping = aes(x = as_of)) +
-  geom_smooth(mapping = aes(y = tot_death_ch_proj, color = is_ca), linetype = "dotted", alpha = 0, span = 0.3, na.rm = TRUE) +
-  geom_smooth(mapping = aes(y = tot_death_ch, color = is_ca), alpha = 0, span = 0.3, na.rm = TRUE) +
+  geom_smooth(mapping = aes(y = tot_death_ch_proj), linetype = "dotted", alpha = 0, span = 0.3, na.rm = TRUE) +
+  geom_smooth(mapping = aes(y = tot_death_ch), alpha = 0, span = 0.3, na.rm = TRUE) +
   theme_bw() +
   theme(legend.title = element_blank()) +
   labs(x = "Date", y = "Deaths per million", title = str_c("The US may experience ", signif(sum(proj_table[as_of_lead_3wk > max(my_data$as_of, na.rm = TRUE), "death_ch_proj"]), 2), " deaths by ", max(my_data$as_of, na.rm = TRUE) + weeks(3)))
