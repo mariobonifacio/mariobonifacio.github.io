@@ -628,18 +628,19 @@ my_data %>%
   inner_join(st_pop_2019) %>% 
   mutate(noreast = if_else(code %in% (pk), "Northeastern states", "All other states")) %>% 
   group_by(noreast, as_of) %>%
-  summarize(us_cases = sum(cases, na.rm = TRUE) / sum(pop_2019, na.rm = TRUE),
-            us_cases_ch = sum(case_ch, na.rm = TRUE) / sum(pop_2019, na.rm = TRUE),
-            us_deaths = sum(death, na.rm = TRUE) / sum(pop_2019, na.rm = TRUE),
-            us_deaths_ch = sum(death_ch, na.rm = TRUE) / sum(pop_2019, na.rm = TRUE)) %>% 
-  filter(us_cases > .000009) %>%
+  summarize(us_cases = sum(cases, na.rm = TRUE) / sum(pop_2019, na.rm = TRUE) * 1000000,
+            us_cases_ch = sum(case_ch, na.rm = TRUE) / sum(pop_2019, na.rm = TRUE) * 1000000,
+            us_deaths = sum(death, na.rm = TRUE) / sum(pop_2019, na.rm = TRUE) * 1000000,
+            us_deaths_ch = sum(death_ch, na.rm = TRUE) / sum(pop_2019, na.rm = TRUE) * 1000000) %>% 
+  # filter(us_cases > .00000009) %>%
   mutate(since = min(as_of)) %>% 
   ggplot(mapping = aes(x = as_of, y = us_deaths_ch)) +
-  geom_smooth(linetype = 0, alpha = .05, mapping = aes(fill = weekdays(as_of), color = noreast)) +
-  geom_smooth(alpha = 0, size = 1, linetype = 2, mapping = aes(color = noreast)) +
-  geom_smooth(color = "black") +
+  geom_smooth(linetype = 0, alpha = .0, mapping = aes(fill = weekdays(as_of), color = noreast), span = 0.8) +
+  geom_smooth(alpha = 0, size = 1, linetype = 2, mapping = aes(color = noreast), span = 0.2) +
+  # geom_smooth(color = "black") +
   theme(legend.position = "none") +
-  labs(title = str_c(str_c(pk, collapse = ", "), " have switched w/others", sep = ""), subtitle = "Deaths per million since 10 cases per million", x = "date", y = "COVID-19 deaths")
+  labs(title = str_c(str_c(pk, collapse = ", "), " have switched w/others", sep = ""), x = "date", y = "COVID-19 deaths per million residents") +
+  ylim(0,7.5)
 ```
 
 
