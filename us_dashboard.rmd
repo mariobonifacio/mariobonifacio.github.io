@@ -133,7 +133,7 @@ lifetime_data %>%
   geom_label(mapping = aes(x = min(lifetime_data[as_of > ymd(20200315) & is_ca == "Calif.", as_of]), y = min(lifetime_data[is_ca == "Calif." & as_of > ymd(20200315), case_ch_pm]), label = "Calif."), color = "darkred") +
   theme_bw() +
   theme(legend.position = "none") +
-  labs(x = "Date", y = "New cases per million per week", title = "U.S. cases are 200% higher than they've ever CA's are double that number", subtitle = str_c("Through ", max(lifetime_data$as_of)))
+  labs(x = "Date", y = "New cases per million per week", title = "U.S. cases are 200% higher than ever and CA's are double that number", subtitle = str_c("Through ", max(lifetime_data$as_of)))
 
 
 ```
@@ -343,7 +343,7 @@ weekly_data %>%
   geom_col() +
   theme_bw() +
   theme(legend.title = element_blank()) +
-  labs(x = "Date", y = "cases per million per week", title = "States with high weekly cases are spread across the country", subtitle = str_c("Week ending ", max(weekly_data$wk_ending))) +
+  labs(x = "Date", y = "cases per million per week", title = "California spread across the country", subtitle = str_c("Week ending ", max(weekly_data$wk_ending))) +
   scale_fill_brewer(palette="Dark2")
 
 ```
