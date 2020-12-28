@@ -802,6 +802,23 @@ since_100 %>%
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
+tot_data <- my_data %>%
+  filter(as_of == max(as_of, na.rm = TRUE)) %>% 
+  inner_join(code_names) %>% 
+  inner_join(pop_dens) %>% 
+  mutate(death_pm = death / pop * 1E6) %>% 
+  data.table()
+
+tot_data %>% 
+  filter(death_pm > quantile(tot_data[,death_pm], probs = .7, na.rm = TRUE) | code == "CA") %>% 
+  ggplot() +
+  geom_col(mapping = aes(x = reorder(code, X = desc(death_pm)), y = death_pm, fill = reg_2)) +
+  labs(x = "state", y = "Weekly deaths per million residents", title = stringr::str_c("States with most deaths per million"), subtitle = str_c("As of ", case_growth$wk_ending[1], sep = " ")) +
+  theme(legend.title=element_blank(), axis.text.x = element_text(angle = 90, size = 8))
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 since_100_labels <- since_100 %>% 
   group_by(code) %>% 
   summarize(lab_days = max(days_in), lab_cases = max(cases_pm))
@@ -944,6 +961,26 @@ my_data %>%
   
 ```
 
+
+```{r}
+my_data %>% 
+  inner_join(results_2016) %>%
+  inner_join(pop_dens) %>%
+  filter(as_of == max(as_of)) %>% 
+  mutate(death_pm = death/pop * 1000000,
+         log_death_pm = log(death_pm, base = 10),
+         log_death_pm_model = bestfit_intercept + bestfit_slope * dens,
+         death_pm_model = 10 ^ (log_death_pm_model),
+         death_pm_res_pct  = (death_pm - death_pm_model) / death_pm_model * 100) %>% 
+  ggplot(mapping = aes(x = reorder(code, desc(death_pm_res_pct)), y = death_pm_res_pct)) +
+  geom_label(mapping = aes(label = code)) +
+  # geom_smooth(linetype = 3, method = "lm", alpha = 0.1) +
+  labs(x = NULL, y = "Log of COVID-19 deaths per million", title = "For many states, density is density", subtitle = str_c("States plotted by density and COVID-19 deaths along a best-fit line, as of ", case_growth$wk_ending[1])) +
+  theme(legend.position = "none", strip.text = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank())
+
+
+  
+```
 
 
 
@@ -1274,23 +1311,27 @@ my_data %>%
 my_data %>% 
   inner_join(code_names) %>% 
   inner_join(st_pop_2019) %>%
-  inner_join(results_2016) %>% 
+  inner_join(results_2016) %>%
+  inner_join(pop_dens) %>%  
   mutate(year_mo = month(as_of)) %>% 
-  group_by(year_mo, code) %>% 
-  summarize(case_ch_pm = 30.5 * mean(case_ch / pop_2019 * 1000000, na.rm = TRUE),
-            death_ch_pm = 30.5 * mean(death_ch / pop_2019 * 1000000, na.rm = TRUE),
+  group_by(year_mo, code, dens) %>% 
+  summarize(case_ch_pm = 366/12 * mean(case_ch / pop_2019 * 1000000, na.rm = TRUE),
+            death_ch_pm = 366/12 * mean(death_ch / pop_2019 * 1000000, na.rm = TRUE),
             is_hrc = sum(t_mgn, na.rm = TRUE) < 0,
             pos_rate = sum(case_ch, na.rm = TRUE) / sum(test_ch, na.rm = TRUE),
             mo_of = median(ymd(str_c("2020", year_mo, "1", sep = "-")))) %>%
   filter(case_ch_pm > 0, death_ch_pm > 0) %>% 
   group_by(year_mo) %>% 
-  top_n(n = 10, death_ch_pm) %>%
-  ggplot(mapping = aes(x = mo_of, y = death_ch_pm, label = code, color = is_hrc)) +
+  top_n(n = 5, death_ch_pm) %>%
+  ggplot(mapping = aes(x = mo_of, y = death_ch_pm, label = code, fill = dens)) +
   geom_label(position = position_jitter(width = 10, height = 60), segment.color = NA) +
-  theme(legend.position = "none") +
-  labs(title = "Ten states with most per capita COVID-19 deaths by month",
+  labs(title = "The states with highest death rates in Dec. 2020 are different from spring",
+       subtitle = "Five states with most per capita COVID-19 deaths by month",
        y = "Monthly COVID-19 deaths per million residents",
-       x = "Date")
+       x = NULL,
+       fill = "pop. per\nsq. mi.") +
+  scale_fill_gradientn(colors = c("lightblue", "white", "yellow"))
+
 
 
 ```
