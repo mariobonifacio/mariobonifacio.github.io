@@ -921,14 +921,14 @@ pop_dens <- read_csv("pop_density.csv") %>%
 temp <- my_data %>%
   inner_join(pop_dens) %>% 
   filter(as_of == max(as_of, na.rm = TRUE)) %>% 
-  mutate(death_pm = death / pop * 1E6,
-         case_pm = cases / pop * 1E6,
+  mutate(death_pm = death / Pop * 1E6,
+         case_pm = cases / Pop * 1E6,
          log_death_pm = log(death_pm, 10))
   
   
 
-bestfit_intercept <- lm(formula = temp$log_death_pm ~ temp$dens)[[1]][[1]]
-bestfit_slope <- lm(formula = temp$log_death_pm ~ temp$dens)[[1]][[2]]
+bestfit_intercept <- lm(formula = temp$log_death_pm ~ temp$Density)[[1]][[1]]
+bestfit_slope <- lm(formula = temp$log_death_pm ~ temp$Density)[[1]][[2]]
 ```
 
 
@@ -938,24 +938,24 @@ my_data %>%
   inner_join(results_2016) %>%
   inner_join(pop_dens) %>%
   filter(as_of == max(as_of)) %>% 
-  mutate(death_pm = death/pop * 1000000,
+  mutate(death_pm = death/Pop * 1000000,
          log_death_pm = log(death_pm, base = 10)) %>%
   group_by(code) %>%
   mutate(hrc = (t_mgn < 0),
-         tier = case_when(dens >= 485 ~ "F",
-                          between(dens, 183, 485) ~ "E",
-                          between(dens, 69, 183) ~ "D",
-                          between(dens, 26, 69) ~ "C",
-                          between(dens, 10, 26) ~ "B",
-                          dens < 10 ~ "A")) %>% 
+         tier = case_when(Density >= 485 ~ "F",
+                          between(Density, 183, 485) ~ "E",
+                          between(Density, 69, 183) ~ "D",
+                          between(Density, 26, 69) ~ "C",
+                          between(Density, 10, 26) ~ "B",
+                          Density < 10 ~ "A")) %>% 
   ungroup() %>%
-  ggplot(mapping = aes(x = dens, y = log_death_pm)) +
+  ggplot(mapping = aes(x = Density, y = log_death_pm)) +
                        # , color = hrc, fill = hrc)) +
-  geom_text_repel(mapping = aes(x = dens, y = log_death_pm, label = code, fill = NULL, color = hrc), position = position_jitter()) +
+  geom_text_repel(mapping = aes(x = Density, y = log_death_pm, label = code, fill = NULL, color = hrc), position = position_jitter()) +
   # geom_smooth(linetype = 3, method = "lm", alpha = 0.1) +
   geom_abline(slope = bestfit_slope, intercept = bestfit_intercept, linetype = 3) +
   facet_wrap(vars(tier),  scales = "free_x", nrow = 2) +
-  labs(x = "Population per square mile", y = "Log of COVID-19 deaths per million", title = "For many states, density is density", subtitle = str_c("States plotted by density and COVID-19 deaths along a best-fit line, as of ", case_growth$wk_ending[1])) +
+  labs(x = "Population per square mile", y = "Log of COVID-19 deaths per million", title = "For many states, density is destiny", subtitle = str_c("States plotted by density and COVID-19 deaths along a best-fit line, as of ", case_growth$wk_ending[1])) +
   theme(legend.position = "none", strip.text = element_blank()) +
   ylim(0, 4)
   
@@ -967,13 +967,13 @@ my_data %>%
   inner_join(results_2016) %>%
   inner_join(pop_dens) %>%
   filter(as_of == max(as_of)) %>% 
-  mutate(death_pm = death/pop * 1000000,
+  mutate(death_pm = death/Pop * 1000000,
          log_death_pm = log(death_pm, base = 10),
-         log_death_pm_model = bestfit_intercept + bestfit_slope * dens,
+         log_death_pm_model = bestfit_intercept + bestfit_slope * Density,
          death_pm_model = 10 ^ (log_death_pm_model),
          death_pm_res_pct  = (death_pm - death_pm_model) / death_pm_model * 100) %>% 
   ggplot(mapping = aes(x = reorder(code, desc(death_pm_res_pct)), y = death_pm_res_pct)) +
-  geom_label(mapping = aes(label = code)) +
+  geom_label(mapping = aes(label = code, color = Density, fill = desc(Density))) +
   # geom_smooth(linetype = 3, method = "lm", alpha = 0.1) +
   labs(x = NULL, y = "Log of COVID-19 deaths per million", title = "For many states, density is density", subtitle = str_c("States plotted by density and COVID-19 deaths along a best-fit line, as of ", case_growth$wk_ending[1])) +
   theme(legend.position = "none", strip.text = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank())

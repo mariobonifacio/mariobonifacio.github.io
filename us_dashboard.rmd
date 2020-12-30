@@ -309,46 +309,75 @@ tot_data %>%
   filter(death_pm > quantile(tot_data[,death_pm], probs = .7, na.rm = TRUE) | code == "CA") %>% 
   ggplot() +
   geom_col(mapping = aes(x = reorder(code, X = desc(death_pm)), y = death_pm, fill = Density)) +
-  labs(x = "state", y = "Weekly deaths per million residents", title = stringr::str_c("States with most cumulative deaths per million"), subtitle = str_c("As of ", max(tot_data[,as_of]), sep = " "))
+  labs(x = "state", y = "Weekly deaths per million residents", title = stringr::str_c("States with most cumulative deaths per million"), subtitle = str_c("As of ", max(tot_data[,as_of]), sep = " ")) +
+  scale_fill_gradient2(low = "white", mid = "white", high = "dodgerblue")
   # + theme(legend.title=element_blank(), axis.text.x = element_text(angle = 90, size = 8))
 ```
 
 
 
-```{r impute_cases, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+```{r impute_cases_from_death, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 c2t_data <- cor_data %>%
   inner_join(select(my_data, as_of, code, test_ch)) %>%
   mutate(pos_rate = case_ch / test_ch,
-         c2t = case_ch * pos_rate,
-         death_ch_lead_3wk = as.double(death_ch_lead_3wk)) %>%
-  filter(as_of > mdy(05012020),
+         death_ch_lead_3wk = as.double(death_ch_lead_3wk),
+         cfr = death_ch_lead_3wk / case_ch) %>%
+  filter(as_of > mdy(06012020),
          !is.na(death_ch_lead_3wk),
-         between(pos_rate, 0.005, 0.50)) %>%
-  group_by(code) %>% 
-  slice_min(order_by = pos_rate, n = 30) %>% 
+         between(pos_rate, 0.005, 0.50)) %>% 
   data.table()
            
-         
-
 c2t_coeff <- data.table(code = character(), coeff = double())
 
 for (i in code_names[,code]) {
   c2t_coeff <- rbind(c2t_coeff,
                      data.table(code = i,
                                 coeff = lm(data = c2t_data[code == i,],
-                                           formula = death_ch_lead_3wk ~ 0 + c2t)[[1]][[1]]))
+                                           formula = cfr ~ pos_rate)[[1]][[1]]))
 }
+```
 
-tmp_model <- c2t_data %>% 
+
+```{r impute_cases_from_posrate, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+case_model <- c2t_data %>% 
   inner_join(c2t_coeff) %>% 
-  mutate(case_ch_model = 200 * death_ch_lead_3wk / coeff) %>% 
+  mutate(case_ch_model = death_ch_lead_3wk / coeff) %>% 
+  unique() %>%
+  mutate(wk_ending = case_when(wday(as_of) == wday(max(my_data$as_of, na.rm = TRUE))
+                               ~ as_of,
+                               wday(as_of) < wday(max(my_data$as_of, na.rm = TRUE))
+                               ~  as_of + days(wday(max(my_data$as_of, na.rm = TRUE)) - wday(as_of)),
+                               wday(as_of) > wday(max(my_data$as_of, na.rm = TRUE))
+                               ~ as_of + days(7 + wday(max(my_data$as_of, na.rm = TRUE)) - wday(as_of)))) %>% 
+  data.table()
+```
+
+
+```{r impute_cases_from_posrate_2, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+case_model_st_wk <- case_model %>%
+  group_by(wk_ending, code) %>% 
+  summarize(case_ch = sum(case_ch),
+            case_ch_model = sum(case_ch_model),
+            pos_rate = sum(case_ch) / sum(test_ch),
+            pos_rate_lag_1wk = mean(pos_rate_lag_1wk),
+            cfr = sum(death_ch_lead_3wk) / sum(case_ch),
+            c2t = case_ch * pos_rate) %>%
+  filter(cfr <= 0.2, between(pos_rate, 0.005, 0.30)) %>% 
   data.table()
 
-tmp_model %>% 
-  ggplot(mapping = aes(x = as_of)) +
-  geom_smooth(mapping = aes(y = case_ch_model), color = "gray", span = 0.0001, alpha = 0, linetype = "dashed") +
-  geom_smooth(mapping = aes(y = case_ch), span = 0.0001, alpha = 0)
-  # ylim(0,max(tmp_model[,case_ch_model], na.rm = TRUE))
+case_model_st_wk %>% 
+  mutate(case_ch = case_ch / case_ch_model,
+         case_ch_model = 1) %>% 
+  ggplot(aes(pos_rate_lag_1wk)) +
+  geom_smooth(aes(y = cfr))
+  
+  # inner_join(pop_dens) %>%
+  # mutate(case_ch_pm = tot_case_ch / Pop * 1000000,
+  #        case_ch_model_pm = case_ch_model / Pop * 1000000) %>% 
+  # slice_max(order_by = case_ch_model_pm, n = 15) %>% 
+  # ggplot(mapping = aes(x = reorder(code, desc(case_ch_pm)))) +
+  # geom_col(mapping = aes(y = case_ch_model_pm), fill = "lightgray", color = "darkgray", size = 1, linetype = "dashed") +
+  # geom_col(mapping = aes(y = case_ch_pm), fill = "darkgray", color = "dodgerblue", size = 1)
 
 
 ## As pos rate approaches 0.5 
@@ -367,15 +396,15 @@ all_data %>%
   mutate(death_pm = death / pop_2019 * 1000000,
          death_3wk_proj_tot_pm = death_3wk_proj + death_pm) %>% 
   arrange(desc(death_3wk_proj_tot_pm)) %>%
-  slice_max(order_by = death_pm, n = 10) %>%
+  slice_max(order_by = death_pm, n = 15) %>%
   select(code, death, Density, death_3wk_proj, death_pm, death_3wk_proj_tot_pm) %>% 
   gather(key = "time_code", value = "death_pm", 4:5) %>% 
   ggplot(mapping = aes(x = reorder(code, desc(death_pm)), y = death_pm, fill = Density)) +
   geom_col(mapping = aes(color = time_code), size = 1) +
   scale_fill_gradient2(low = "white", mid = "white", high = "dodgerblue") +
-  labs(x = "State", y = "COVID-19 deaths per million residents", fill = "population\ndensity", title = "States with highest COVID-19 death rates may be dense or sparse", subtitle = str_c("COVID-19 deaths per million residents as of ", max(my_data$as_of, na.rm = TRUE))) +
+  labs(x = "State", y = "COVID-19 deaths per million residents", fill = "population\ndensity", title = "States with high COVID-19 death rates may be dense or sparse", subtitle = str_c("COVID-19 deaths per million residents as of ", max(my_data$as_of, na.rm = TRUE))) +
   theme_bw() +
-  geom_label(mapping = aes(y = death_3wk_proj_tot_pm, label = death), fill = "lightgray") +
+  # geom_label(mapping = aes(y = death_3wk_proj_tot_pm, label = death), fill = "lightgray") +
   scale_colour_discrete(type = c("gray", "black"))
 
 ```
@@ -390,7 +419,7 @@ weekly_data %>%
   geom_col() +
   theme_bw() +
   theme(legend.title = element_blank()) +
-  labs(x = "Date", y = "Deaths per million per week", title = "SD remains atop death rank", subtitle = str_c("Week ending ", max(weekly_data$wk_ending))) +
+  labs(x = "Date", y = "Deaths per million per week", title = "NM, PA, and AR are atop death rank", subtitle = str_c("Week ending ", max(weekly_data$wk_ending))) +
   scale_fill_brewer(palette="Dark2")
 ```
 
