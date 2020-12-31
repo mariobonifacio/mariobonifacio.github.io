@@ -802,23 +802,6 @@ since_100 %>%
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-tot_data <- my_data %>%
-  filter(as_of == max(as_of, na.rm = TRUE)) %>% 
-  inner_join(code_names) %>% 
-  inner_join(pop_dens) %>% 
-  mutate(death_pm = death / pop * 1E6) %>% 
-  data.table()
-
-tot_data %>% 
-  filter(death_pm > quantile(tot_data[,death_pm], probs = .7, na.rm = TRUE) | code == "CA") %>% 
-  ggplot() +
-  geom_col(mapping = aes(x = reorder(code, X = desc(death_pm)), y = death_pm, fill = reg_2)) +
-  labs(x = "state", y = "Weekly deaths per million residents", title = stringr::str_c("States with most deaths per million"), subtitle = str_c("As of ", case_growth$wk_ending[1], sep = " ")) +
-  theme(legend.title=element_blank(), axis.text.x = element_text(angle = 90, size = 8))
-```
-
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
 since_100_labels <- since_100 %>% 
   group_by(code) %>% 
   summarize(lab_days = max(days_in), lab_cases = max(cases_pm))
@@ -921,14 +904,14 @@ pop_dens <- read_csv("pop_density.csv") %>%
 temp <- my_data %>%
   inner_join(pop_dens) %>% 
   filter(as_of == max(as_of, na.rm = TRUE)) %>% 
-  mutate(death_pm = death / Pop * 1E6,
-         case_pm = cases / Pop * 1E6,
+  mutate(death_pm = death / pop * 1E6,
+         case_pm = cases / pop * 1E6,
          log_death_pm = log(death_pm, 10))
   
   
 
-bestfit_intercept <- lm(formula = temp$log_death_pm ~ temp$Density)[[1]][[1]]
-bestfit_slope <- lm(formula = temp$log_death_pm ~ temp$Density)[[1]][[2]]
+bestfit_intercept <- lm(formula = temp$log_death_pm ~ temp$dens)[[1]][[1]]
+bestfit_slope <- lm(formula = temp$log_death_pm ~ temp$dens)[[1]][[2]]
 ```
 
 
@@ -938,20 +921,20 @@ my_data %>%
   inner_join(results_2016) %>%
   inner_join(pop_dens) %>%
   filter(as_of == max(as_of)) %>% 
-  mutate(death_pm = death/Pop * 1000000,
+  mutate(death_pm = death/pop * 1000000,
          log_death_pm = log(death_pm, base = 10)) %>%
   group_by(code) %>%
   mutate(hrc = (t_mgn < 0),
-         tier = case_when(Density >= 485 ~ "F",
-                          between(Density, 183, 485) ~ "E",
-                          between(Density, 69, 183) ~ "D",
-                          between(Density, 26, 69) ~ "C",
-                          between(Density, 10, 26) ~ "B",
-                          Density < 10 ~ "A")) %>% 
+         tier = case_when(dens >= 485 ~ "F",
+                          between(dens, 183, 485) ~ "E",
+                          between(dens, 69, 183) ~ "D",
+                          between(dens, 26, 69) ~ "C",
+                          between(dens, 10, 26) ~ "B",
+                          dens < 10 ~ "A")) %>% 
   ungroup() %>%
-  ggplot(mapping = aes(x = Density, y = log_death_pm)) +
+  ggplot(mapping = aes(x = dens, y = log_death_pm)) +
                        # , color = hrc, fill = hrc)) +
-  geom_text_repel(mapping = aes(x = Density, y = log_death_pm, label = code, fill = NULL, color = hrc), position = position_jitter()) +
+  geom_text_repel(mapping = aes(x = dens, y = log_death_pm, label = code, fill = NULL, color = hrc), position = position_jitter()) +
   # geom_smooth(linetype = 3, method = "lm", alpha = 0.1) +
   geom_abline(slope = bestfit_slope, intercept = bestfit_intercept, linetype = 3) +
   facet_wrap(vars(tier),  scales = "free_x", nrow = 2) +
@@ -967,13 +950,13 @@ my_data %>%
   inner_join(results_2016) %>%
   inner_join(pop_dens) %>%
   filter(as_of == max(as_of)) %>% 
-  mutate(death_pm = death/Pop * 1000000,
+  mutate(death_pm = death/pop * 1000000,
          log_death_pm = log(death_pm, base = 10),
-         log_death_pm_model = bestfit_intercept + bestfit_slope * Density,
+         log_death_pm_model = bestfit_intercept + bestfit_slope * dens,
          death_pm_model = 10 ^ (log_death_pm_model),
          death_pm_res_pct  = (death_pm - death_pm_model) / death_pm_model * 100) %>% 
   ggplot(mapping = aes(x = reorder(code, desc(death_pm_res_pct)), y = death_pm_res_pct)) +
-  geom_label(mapping = aes(label = code, color = Density, fill = desc(Density))) +
+  geom_label(mapping = aes(label = code, color = dens, fill = desc(dens))) +
   # geom_smooth(linetype = 3, method = "lm", alpha = 0.1) +
   labs(x = NULL, y = "Log of COVID-19 deaths per million", title = "For many states, density is density", subtitle = str_c("States plotted by density and COVID-19 deaths along a best-fit line, as of ", case_growth$wk_ending[1])) +
   theme(legend.position = "none", strip.text = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank())
@@ -1130,7 +1113,7 @@ my_data %>%
   filter(cases_pm >= 10) %>% 
   ggplot(mapping = aes(x = as_of)) +
   geom_smooth(mapping = aes(x = as_of, y = death_pm, color = is_clinton, fill = is_clinton), alpha = 0.1, na.rm = TRUE, span = .1) +
-  geom_point(mapping = aes(y = death_pm_diff)) +
+  geom_point(mapping = aes(y = death_pm_diff), size = 1) +
   labs(x = "Date", y = "Cumulative COVID-19 deaths per million", title = "The gap in total deaths has been shrinking since July", subtitle = "Total COVID-19 deaths per million per day by 2016 result") +
   theme(
     # axis.text = element_blank(),
@@ -1325,7 +1308,7 @@ my_data %>%
   top_n(n = 5, death_ch_pm) %>%
   ggplot(mapping = aes(x = mo_of, y = death_ch_pm, label = code, fill = dens)) +
   geom_label(position = position_jitter(width = 10, height = 60), segment.color = NA) +
-  labs(title = "The states with highest death rates in Dec. 2020 are different from spring",
+  labs(title = "States with high death rates switched from dense to sparse",
        subtitle = "Five states with most per capita COVID-19 deaths by month",
        y = "Monthly COVID-19 deaths per million residents",
        x = NULL,
@@ -1860,148 +1843,3 @@ cor_data <- my_data %>%
 ```
 
 
-
-
-```{r}
-
-proj_table <- data.table(code = character(),
-                         as_of_lead_3wk = Date(),
-                         death_ch_lead_3wk = integer(),
-                         death_ch_proj = double())
-
-st_vector <- code_names %>% select(code) %>% arrange(code) %>% pull(code)
-
-for (i in st_vector) {
-
-temp_tbl <- cor_data %>%
-    filter(code %in% i)
-
-proj_table <- rbind(proj_table,
-                    data.table(code = temp_tbl$code,
-                               as_of_lead_3wk = temp_tbl$as_of_lead_3wk,
-                               death_ch_lead_3wk = temp_tbl$death_ch_lead_3wk,
-                               death_ch_proj = (temp_tbl %>%
-                                 mutate(death_ch_proj = lm("death_ch_lead_3wk ~ case_ch + pos_rate_lag_1wk",
-                                                           temp_tbl,
-                                                           na.action = na.omit)[[1]][[1]] +
-                                          case_ch *
-                                          lm("death_ch_lead_3wk ~ case_ch + pos_rate_lag_1wk",
-                                             temp_tbl,
-                                             na.action = na.omit)[[1]][[2]] +
-                                          pos_rate_lag_1wk *
-                                          lm("death_ch_lead_3wk ~ case_ch + pos_rate_lag_1wk",
-                                             temp_tbl,
-                                             na.action = na.omit)[[1]][[3]]) %>% 
-                                   pull(death_ch_proj))))
-
-}
-  
-```
-
-```{r message=FALSE, warning=FALSE}
-proj_table %>%
-  filter(as_of_lead_3wk > max(cor_data$as_of) - months(6)) %>%
-  mutate(death_ch_proj = case_when(as_of_lead_3wk == max(cor_data$as_of) ~ as.double(death_ch_lead_3wk),
-                                   as_of_lead_3wk > max(cor_data$as_of) ~ death_ch_proj)) %>% 
-  ggplot() +
-  geom_smooth(mapping = aes(x = as_of_lead_3wk, y = death_ch_proj), linetype = "dashed") +
-  geom_smooth(mapping = aes(x = as_of_lead_3wk, y = death_ch_lead_3wk)) +
-  labs(x = "date", y = "Deaths per day per million residents", title = "Deaths likely to increase over next 3 weeks")
-```
-
-
-
-
-```{r}
-proj_well <- proj_table %>%
-  filter(as_of_lead_3wk > max(my_data$as_of)) %>%
-  group_by(code) %>%
-  mutate(days_since = as.integer(as_of_lead_3wk - max(my_data$as_of)),
-         week_ending = case_when(days_since < quantile(days_since, probs = 0.34) ~
-                                   max(my_data$as_of) + days(7),
-                                 days_since > quantile(days_since, probs = 0.66) ~
-                                   max(my_data$as_of) + days(21),
-                                 TRUE ~
-                                   max(my_data$as_of) + days(14))) %>% 
-  group_by(week_ending) %>% 
-  summarize(death_week_proj = signif(sum(death_ch_proj, na.rm = TRUE), 2), death_day_avg_proj = signif(death_week_proj / 7, 2))
-  
-```
-
-
-
-
-
-
-```{r}
-
-
-proj_table %>%
-  filter(as_of_lead_3wk > max(my_data$as_of)) %>%
-  group_by(code) %>%
-  mutate(days_since = as.integer(as_of_lead_3wk - max(my_data$as_of)),
-         week_ending = case_when(days_since < quantile(days_since, probs = 0.34) ~
-                                   max(my_data$as_of) + days(7),
-                                 days_since > quantile(days_since, probs = 0.66) ~
-                                   max(my_data$as_of) + days(21),
-                                 TRUE ~
-                                   max(my_data$as_of) + days(14))) %>% 
-  ungroup() %>% 
-  inner_join(code_names) %>% 
-  inner_join(st_pop_2019) %>% 
-  group_by(code, week_ending) %>% 
-  summarize(death_week_proj = signif(sum(death_ch_proj, na.rm = TRUE) / pop_2019 * 1000000, 2), death_day_avg_proj = signif(death_week_proj / 7, 2)) %>% 
-  arrange(desc(death_week_proj)) %>% 
-  unique()
-```
-
-
-
-```{r}
-proj_table %>%
-  filter(as_of_lead_3wk > max(my_data$as_of)) %>%
-  group_by(code) %>%
-  mutate(days_since = as.integer(as_of_lead_3wk - max(my_data$as_of)),
-         week_ending = case_when(days_since < quantile(days_since, probs = 0.34) ~
-                                   max(my_data$as_of) + days(7),
-                                 days_since > quantile(days_since, probs = 0.66) ~
-                                   max(my_data$as_of) + days(21),
-                                 TRUE ~
-                                   max(my_data$as_of) + days(14))) %>% 
-  ungroup() %>% 
-  inner_join(code_names) %>% 
-  inner_join(st_pop_2019) %>% 
-  group_by(code, week_ending) %>% 
-  summarize(death_week_proj = signif(sum(death_ch_proj, na.rm = TRUE) / pop_2019 * 1000000, 2), death_day_avg_proj = signif(death_week_proj / 7, 2)) %>% 
-  unique() %>% 
-  arrange(week_ending, desc(death_week_proj)) %>% 
-  slice_max(order_by = desc(death_week_proj), n = 10) %>% 
-  ggplot() +
-  geom_col(mapping = aes(x = reorder(code, desc(death_week_proj)), y = death_week_proj, label = code, fill = week_ending)) +
-  facet_wrap(facets = vars(week_ending))
-  
-```
-
-
-```{r}
-proj_well %>% 
-    ggplot(mapping = aes(x = week_ending, y = death_week_proj, label = death_week_proj)) +
-  geom_col() +
-  geom_label() +
-  ylim(0, 20000)
-```
-
-```{r}
-my_data %>% 
-  inner_join(code_names) %>% 
-  inner_join(st_pop_2019) %>%
-  inner_join(results_2016) %>% 
-  group_by(as_of) %>% 
-  summarize(cumulative_deaths = sum(death, na.rm = TRUE)) %>% 
-  filter(cumulative_deaths > 0) %>% 
-  ggplot(aes(as_of, cumulative_deaths)) +
-  geom_line() +
-  geom_label(mapping = aes(x = max(as_of), y = max(cumulative_deaths), label = max(cumulative_deaths)))
-
-
-```

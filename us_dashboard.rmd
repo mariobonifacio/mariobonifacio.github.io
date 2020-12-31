@@ -308,7 +308,7 @@ tot_data <- my_data %>%
 tot_data %>% 
   filter(death_pm > quantile(tot_data[,death_pm], probs = .7, na.rm = TRUE) | code == "CA") %>% 
   ggplot() +
-  geom_col(mapping = aes(x = reorder(code, X = desc(death_pm)), y = death_pm, fill = Density)) +
+  geom_col(mapping = aes(x = reorder(code, X = desc(death_pm)), y = death_pm, fill = Density), color = "dodgerblue") +
   labs(x = "state", y = "Weekly deaths per million residents", title = stringr::str_c("States with most cumulative deaths per million"), subtitle = str_c("As of ", max(tot_data[,as_of]), sep = " ")) +
   scale_fill_gradient2(low = "white", mid = "white", high = "dodgerblue")
   # + theme(legend.title=element_blank(), axis.text.x = element_text(angle = 90, size = 8))
@@ -362,13 +362,13 @@ case_model_st_wk <- case_model %>%
             pos_rate_lag_1wk = mean(pos_rate_lag_1wk),
             cfr = sum(death_ch_lead_3wk) / sum(case_ch),
             c2t = case_ch * pos_rate) %>%
-  filter(cfr <= 0.2, between(pos_rate, 0.005, 0.30)) %>% 
+  filter(cfr <= 0.2, between(pos_rate, 0.1, 0.30)) %>% 
   data.table()
 
 case_model_st_wk %>% 
   mutate(case_ch = case_ch / case_ch_model,
          case_ch_model = 1) %>% 
-  ggplot(aes(pos_rate_lag_1wk)) +
+  ggplot(aes(pos_rate)) +
   geom_smooth(aes(y = cfr))
   
   # inner_join(pop_dens) %>%
@@ -405,7 +405,7 @@ all_data %>%
   labs(x = "State", y = "COVID-19 deaths per million residents", fill = "population\ndensity", title = "States with high COVID-19 death rates may be dense or sparse", subtitle = str_c("COVID-19 deaths per million residents as of ", max(my_data$as_of, na.rm = TRUE))) +
   theme_bw() +
   # geom_label(mapping = aes(y = death_3wk_proj_tot_pm, label = death), fill = "lightgray") +
-  scale_colour_discrete(type = c("gray", "black"))
+  scale_colour_discrete(type = c("lightgray", "dodgerblue"))
 
 ```
 
