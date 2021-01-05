@@ -22,13 +22,13 @@ library(RColorBrewer)
 
 Pulling the most recent data from ecdc
 ```{r include=FALSE}
-ecdc_data <- read.csv("https://opendata.ecdc.europa.eu/covid19/casedistribution/csv", na.strings = "", fileEncoding = "UTF-8-BOM", stringsAsFactors = FALSE)
+ecdc_data <- read.csv("https://opendata.ecdc.europa.eu/covid19/casedistribution/csv", na.strings = "", fileEncoding = "UTF-8-BOM", stringsAsFactors = FALSE) %>% data.table()
 ```
 
 
 Importing 
 ```{r}
-pop_data <- read_csv("pop_data.csv", col_types = "cci")
+pop_data <- read_csv("pop_data.csv", col_types = "cci") %>% data.table()
 ```
 
 
@@ -39,15 +39,15 @@ my_ecdc <- ecdc_data %>%
   mutate(as_of = dmy(dateRep),
          co_code = as.character(countryterritoryCode)) %>% 
   inner_join(pop_data) %>% 
-         mutate(cases_pm = cases * 1000000 / pop_2019,
-         deaths_pm = deaths * 1000000 / pop_2019) %>% 
+         mutate(cases_weekly_pm = cases_weekly * 1000000 / pop_2019,
+         deaths_weekly_pm = deaths_weekly * 1000000 / pop_2019) %>% 
   select(co_code,
          co_name,
          as_of,
-         cases,
-         cases_pm,
-         deaths,
-         deaths_pm,
+         cases_weekly,
+         cases_weekly_pm,
+         deaths_weekly,
+         deaths_weekly_pm,
          pop_2019)
   
 ```
@@ -101,11 +101,12 @@ just_nordics <- my_oecd %>%
   filter(co_code %in% c("SWE", "FIN", "ISL", "NOR", "DNK")) %>% 
   group_by(co_code) %>% 
   arrange(as_of) %>% 
-  mutate(tot_deaths = cumsum(deaths),
-         tot_deaths_pm = cumsum(deaths_pm),
-         tot_cases = cumsum(cases),
-         tot_cases_pm = cumsum(cases_pm)) %>% 
-  ungroup()
+  mutate(tot_deaths = cumsum(deaths_weekly),
+         tot_deaths_pm = cumsum(deaths_weekly_pm),
+         tot_cases = cumsum(cases_weekly),
+         tot_cases_pm = cumsum(cases_weekly_pm)) %>% 
+  ungroup() %>% 
+  data.table()
   
 
 ```
@@ -117,12 +118,12 @@ just_nordics %>%
   filter(tot_deaths>0) %>% 
   mutate(x_lbl = if_else(as_of == max(as_of), max(as_of), NULL),
          y_lbl = if_else(as_of == max(as_of), tot_deaths_pm, NULL),
-         cfr = deaths / cases) %>% 
+         cfr = tot_deaths / tot_cases) %>% 
   ggplot(mapping = aes(x = as_of, y = tot_deaths_pm)) +
   geom_point(mapping = aes(color = co_code, size = cfr)) +
   geom_label_repel(mapping = aes(x = x_lbl, y = y_lbl, color = co_code, label = co_code), na.rm = TRUE) +
   theme(legend.position = "none") +
-  labs(title = "Sweden has five to 10 times more COVID-19 deaths than other Nordic countries", x = "Cumulative COVID-19 deaths per million", y = "Date")
+  labs(title = "Sweden has four to eight times as many per capita COVID-19 deaths as other Nordic countries", y = "Cumulative COVID-19 deaths per million", x = "Date")
 ```
 
 
@@ -132,7 +133,7 @@ just_nordics %>%
   mutate(x_lbl = if_else(as_of == max(as_of), max(as_of), NULL),
          y_lbl = if_else(as_of == max(as_of), tot_cases_pm, NULL)) %>% 
   ggplot(mapping = aes(x = as_of, y = tot_cases_pm)) +
-  geom_point(mapping = aes(color = co_code, size = cases_pm)) +
+  geom_point(mapping = aes(color = co_code, size = tot_cases_pm)) +
   geom_label_repel(mapping = aes(x = x_lbl, y = y_lbl, color = co_code, label = co_code), na.rm = TRUE) +
   theme(legend.position = "none") +
   labs(title = "Sweden has 30 to 500% more cases per capita than other Nordic countries")
@@ -144,12 +145,12 @@ just_nordics %>%
 weekly_oecd <- my_oecd %>% 
   mutate(as_of_week = lubridate::week(as_of)) %>%
   group_by(co_code, as_of_week) %>% 
-  summarize(weekly_deaths_pm = sum(deaths_pm),
-            weekly_deaths = sum(deaths),
-            weekly_cases_pm = sum(cases_pm),
-            weekly_cases = sum(cases),
-            mean_cases_pm = mean(deaths_pm, na.rm = TRUE),
-            mean_deaths_pm = mean(deaths_pm, na.rm = TRUE),
+  summarize(weekly_deaths_pm = sum(deaths_weekly_pm),
+            weekly_deaths = sum(deaths_weekly),
+            weekly_cases_pm = sum(cases_weekly_pm),
+            weekly_cases = sum(cases_weekly),
+            mean_cases_pm = mean(deaths_weekly_pm, na.rm = TRUE),
+            mean_deaths_pm = mean(deaths_weekly_pm, na.rm = TRUE),
             wk_ending = max(as_of))
 ```
 

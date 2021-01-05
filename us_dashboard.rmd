@@ -285,7 +285,7 @@ ggplot() +
                                                             max(my_data$as_of, na.rm = TRUE),
                                                            " to a total of ",
                                                            sum(lifetime_data[as_of == max(as_of, na.rm = TRUE), deaths]),
-                                                           "\nand may see ", signif(sum(proj_table[as_of_lead_3wk > max(my_data$as_of, na.rm = TRUE), death_ch_proj], na.rm = TRUE), 3), " more deaths over the next 3 weeks ending ", max(my_data$as_of, na.rm = TRUE) + weeks(3)))
+                                                           "\nand may see ", signif(sum(proj_table[as_of_lead_3wk > max(my_data$as_of, na.rm = TRUE), death_ch_proj / 3], na.rm = TRUE), 3), " per week through ", max(my_data$as_of, na.rm = TRUE) + weeks(3)))
        # ,caption = "California data normalized using a factor of 7"
        
 
