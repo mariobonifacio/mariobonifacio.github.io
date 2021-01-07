@@ -181,8 +181,8 @@ weekly_oecd %>%
 ```{r}
 my_oecd %>% 
   filter(co_code %in% c("KOR", "USA", "CAN"),
-         cases_pm > 0) %>% 
-  ggplot(mapping = aes(x = as_of, y = cases_pm, color = co_code)) +
+         cases_weekly_pm > 0) %>% 
+  ggplot(mapping = aes(x = as_of, y = cases_weekly_pm, color = co_code)) +
   geom_smooth(size = 2, alpha = 0) +
   labs(color = NULL,
        x = "Date",
@@ -195,10 +195,10 @@ my_oecd %>%
 ```{r echo=FALSE}
 total_oecd <- my_oecd %>% 
   group_by(co_code) %>% 
-  summarize(total_deaths_pm = sum(deaths_pm),
-            total_deaths = sum(deaths),
-            total_cases_pm = sum(cases_pm),
-            total_cases = sum(cases),
+  summarize(total_deaths_pm = sum(deaths_weekly_pm),
+            total_deaths = sum(deaths_weekly),
+            total_cases_pm = sum(cases_weekly_pm),
+            total_cases = sum(cases_weekly),
             end_date = max(as_of))
 ```
 
@@ -224,43 +224,40 @@ total_oecd %>%
 ```
 
 
-```{r}
-total_oecd
-```
 
 
 
 ```{r}
 labelly <- my_oecd %>% 
   group_by(co_code) %>% 
-  summarize(as_of = max(as_of), label_death = max(deaths_pm))
+  summarize(as_of = max(as_of), label_death = max(deaths_weekly_pm))
 
 
 my_kor <- my_oecd %>%
   filter(co_code == "KOR") %>%
-  select(as_of, cases, deaths)
+  select(as_of, cases_weekly, deaths_weekly)
 
 j <- data.table(d_offset = integer(), cor_offset = double())
 
-for (i in 5:62) {
+for (i in 1:9) {
 
 j <- rbind(j, data.table(d_offset = i, cor_offset = my_kor %>%
-    mutate(d_lag = as_of + days(i)) %>%
+    mutate(d_lag = as_of + weeks(i)) %>%
     left_join(my_kor, by = c("d_lag" = "as_of")) %>% 
     pull(6) %>% 
-    cor(x = ., y = my_kor$cases, use = "complete.obs")))
+    cor(x = ., y = my_kor$cases_weekly, use = "complete.obs")))
 }
 
 j
 
 my_kor %>% 
-  mutate(d_as_of = as_of - days(20)) %>% 
-  select(deaths, d_as_of) %>%
-  full_join((my_kor %>% select(cases, as_of)), by = c("d_as_of" = "as_of")) %>% 
+  mutate(d_as_of = as_of - weeks(1)) %>% 
+  select(deaths_weekly, d_as_of) %>%
+  full_join((my_kor %>% select(cases_weekly, as_of)), by = c("d_as_of" = "as_of")) %>% 
   mutate(week_num = week(d_as_of)) %>%
   group_by(week_num) %>% 
-  summarize(death_wk = sum(deaths, na.rm = TRUE),
-            case_wk = sum(cases, na.rm = TRUE),
+  summarize(death_wk = sum(deaths_weekly, na.rm = TRUE),
+            case_wk = sum(cases_weekly, na.rm = TRUE),
             week_of = median(d_as_of, na.rm = TRUE)) %>% 
   mutate(deaths_ix = death_wk / max(death_wk, na.rm = TRUE),
          cases_ix = case_wk / max(case_wk, na.rm = TRUE)) %>% 
@@ -290,7 +287,7 @@ nord_labor %>%
   summarize(as_of = max(DATE, na.rm = TRUE), unemp = max(unemp, na.rm = TRUE) - min(unemp, na.rm = TRUE)) %>% 
   left_join(my_oecd) %>% 
   ggplot() +
-  geom_label(mapping = aes(x = deaths_pm, y = unemp, color = co_code, label = str_c(co_code))) +
+  geom_label(mapping = aes(x = deaths_weekly_pm, y = unemp, color = co_code, label = str_c(co_code))) +
   labs(x = "COVID-19 cases per million", y = str_c("change in unemployment rate from Jan 2020")) +
   theme(legend.position = "none")
 

@@ -1843,3 +1843,35 @@ cor_data <- my_data %>%
 ```
 
 
+```{r}
+
+# cor_data[code == "CA" & as_of > ymd(20201215)] %>% ggplot(aes(pos_rate_lag_1wk)) + geom_histogram()
+# cor_data[code == "CA"] %>% ggplot(aes(as_of, pos_rate_lag_1wk)) + geom_line()
+# 
+# cor_data %>%
+#   filter(code == 'CA',
+#          as_of > ymd(20201201)) %>%
+#   ggplot() +
+#   geom_abline(slope = lm(cor_data[code == 'CA', death_ch_lead_3wk] ~ 0 + cor_data[code == 'CA', cor_data[code == 'CA', case_ch]])[[1]][[1]]) +
+#   geom_abline(slope = lm(cor_data[code == 'CA', death_ch_lead_3wk] ~ 0 + cor_data[code == 'CA', cor_data[code == 'CA', case_ch]][[1]][[1]] + cor_data[code == 'CA', cor_data[code == 'CA', case_ch]])[[1]][[1]])
+#   
+# 
+# lm(cor_data[code == 'CA', death_ch_lead_3wk])
+# 
+# 
+# 
+# cor_data %>%
+#   filter(code == 'CA',
+#          pos_rate_lag_1wk > 0.2) %>%
+#   lm(formula = death_ch_lead_3wk ~ 0 + case_ch) %>% 
+#   .[[1]]
+# 
+# cor_data %>%
+#   filter(code == 'CA',
+#          pos_rate_lag_1wk > 0.2) %>%
+#   lm(formula = death_ch_lead_3wk ~ 0 + case_ch + pos_rate_lag_1wk) %>% 
+#   .[[1]]
+# 
+# (1006 - 0103) / 103
+```
+
