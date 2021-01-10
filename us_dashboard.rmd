@@ -306,7 +306,7 @@ tot_data <- my_data %>%
   data.table()
 
 tot_data %>% 
-  filter(death_pm > quantile(tot_data[,death_pm], probs = .7, na.rm = TRUE) | code == "CA") %>% 
+  filter(death_pm > quantile(tot_data[,death_pm], probs = .7, na.rm = TRUE) | code %in% c("CA", "FL")) %>% 
   ggplot() +
   geom_col(mapping = aes(x = reorder(code, X = desc(death_pm)), y = death_pm, fill = Density), color = "dodgerblue") +
   labs(x = "state", y = "Weekly deaths per million residents", title = stringr::str_c("States with most cumulative deaths per million"), subtitle = str_c("As of ", max(tot_data[,as_of]), sep = " ")) +
@@ -371,18 +371,11 @@ case_model_st_wk %>%
   cor(x = pos_rate_lag_1wk)
 
 case_model_st_wk %>% 
-  mutate(case_ch = case_ch / case_ch_model,
-         case_ch_model = 1) %>% 
   ggplot(aes(pos_rate_lag_1wk)) +
-  geom_point(aes(y = case_ch))
+  geom_smooth(aes(y = case_ch), method = "lm") +
+  geom_smooth(aes(y = death_ch_lead_3wk * max(case_model_st_wk[,case_ch], na.rm = TRUE) / max(case_model_st_wk[,death_ch_lead_3wk], na.rm = TRUE)), color = "dodgerblue", method = "lm")
   
-  inner_join(pop_dens) %>%
-  mutate(case_ch_pm = tot_case_ch / Pop * 1000000,
-         case_ch_model_pm = case_ch_model / Pop * 1000000) %>%
-  slice_max(order_by = case_ch_model_pm, n = 15) %>%
-  ggplot(mapping = aes(x = reorder(code, desc(case_ch_pm)), y = case_ch_pm) ) +
-  geom_col(mapping = aes(y = case_ch_model_pm), fill = "lightgray", color = "darkgray", size = 1, linetype = "dashed") +
-  geom_col(mapping = aes(y = case_ch_pm), fill = "darkgray", color = "dodgerblue", size = 1)
+
 
 
 ## As pos rate approaches 0.5 
@@ -424,7 +417,7 @@ weekly_data %>%
   geom_col() +
   theme_bw() +
   theme(legend.title = element_blank()) +
-  labs(x = "Date", y = "Deaths per million per week", title = "NM, PA, and AR are atop death rank", subtitle = str_c("Week ending ", max(weekly_data$wk_ending))) +
+  labs(x = "Date", y = "Deaths per million per week", title = "AZ and WV are atop death rank", subtitle = str_c("Week ending ", max(weekly_data$wk_ending))) +
   scale_fill_brewer(palette="Dark2")
 ```
 
@@ -437,7 +430,7 @@ weekly_data %>%
   ggplot(mapping = aes(x = reorder(x = code, X = desc(case_weekly_pm)), y = case_weekly_pm, fill = pos_rate)) +
   geom_col(color = "darkgray", size = 1) +
   theme_bw() +
-  labs(x = NULL, y = "cases per million per week", title = "California led the nation in cases per capita for the first time", subtitle = str_c("It had ", weekly_data[code == "CA", case_weekly]," COVID-19 cases in the week ending ", max(weekly_data$wk_ending)), fill = "Pos. rate") +
+  labs(x = NULL, y = "cases per million per week", title = "Arizona led the nation in cases per capita for the first time", subtitle = str_c("It had ", weekly_data[code == "AZ", case_weekly]," COVID-19 cases in the week ending ", max(weekly_data$wk_ending)), fill = "Pos. rate") +
   scale_fill_gradient2(low = "white", mid = "white", high = "dodgerblue")
 
 
@@ -449,7 +442,7 @@ weekly_data %>%
 proj_sum %>%
   filter(death_3wk_proj > quantile(proj_sum$death_3wk_proj, 0.7) |
            # death_3wk_proj < quantile(proj_sum$death_3wk_proj, 0.2) |
-           code == "CA") %>% 
+           code %in% c("CA", "FL")) %>% 
   ggplot(mapping = aes(x = reorder(code, desc(death_3wk_proj)), y = death_3wk_proj, color = reg_2, fill = reg_2)) +
   geom_col(alpha = 0.2, linetype = "dashed", size = 1) +
   theme_bw() +
