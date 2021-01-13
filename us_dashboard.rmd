@@ -417,7 +417,7 @@ weekly_data %>%
   geom_col() +
   theme_bw() +
   theme(legend.title = element_blank()) +
-  labs(x = "Date", y = "Deaths per million per week", title = "AZ and WV are atop death rank", subtitle = str_c("Week ending ", max(weekly_data$wk_ending))) +
+  labs(x = "Date", y = "Deaths per million per week", title = "AZ, AL, and K are atop death rank", subtitle = str_c("Week ending ", max(weekly_data$wk_ending))) +
   scale_fill_brewer(palette="Dark2")
 ```
 
@@ -447,7 +447,7 @@ proj_sum %>%
   geom_col(alpha = 0.2, linetype = "dashed", size = 1) +
   theme_bw() +
   theme(legend.title = element_blank()) +
-  labs(title = "Northeast states may see an increase in deaths soon", subtitle = str_c("Projected deaths for three weeks starting ", max(my_data$as_of, na.rm = TRUE) + days(1)), x = NULL, y = "Projected deaths per million the next 3 weeks") +
+  labs(title = "Middle South states may see an increase in deaths soon", subtitle = str_c("Projected deaths for three weeks starting ", max(my_data$as_of, na.rm = TRUE) + days(1)), x = NULL, y = "Projected deaths per million the next 3 weeks") +
   scale_fill_brewer(palette = "Dark2") +
   scale_color_brewer(palette = "Dark2")
 

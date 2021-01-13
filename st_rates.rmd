@@ -149,7 +149,7 @@ test_growth %>%
   inner_join(case_growth, by = "code") %>% 
   arrange(desc(tests_weekly_per_mil)) %>% 
   filter((tests_weekly_per_mil < quantile(test_growth$tests_weekly_per_mil, probs = 0.2, na.rm = TRUE))
-         | (tests_weekly_per_mil > quantile(test_growth$tests_weekly_per_mil, probs = 0.8, na.rm = TRUE))) %>% 
+         | (tests_weekly_per_mil > quantile(test_growth$tests_weekly_per_mil, probs = 0.8, na.rm = TRUE)) | code == "NJ") %>% 
   ggplot() +
   geom_col(mapping = aes(x = reorder(x = code, X = tests_weekly_per_mil), y = tests_weekly_per_mil, fill = reg_2)) +
   labs(x = "state", y = "Weekly tests per million residents", title = stringr::str_c("States with the fewest and most tests per million"), subtitle = str_c("One week ending", death_growth$wk_ending[1], sep = " ")) +
@@ -286,7 +286,7 @@ case_growth %>%
   arrange(desc(cases_weekly_per_mil)) %>% 
   filter(cases_weekly_per_mil > quantile(case_growth$cases_weekly_per_mil, probs = 0.8, na.rm = TRUE) |
            cases_weekly_per_mil < quantile(case_growth$cases_weekly_per_mil, probs = 0.2, na.rm = TRUE) |
-           code %in% c("CA", "TX", "FL")) %>% 
+           code %in% c("CA", "TX", "FL", "NJ")) %>% 
   group_by(code) %>% 
   filter(as_of >= today() - days(13) ) %>% 
   mutate(pos_rate = sum(case_ch) / sum(test_ch)) %>% 
@@ -310,7 +310,7 @@ death_growth %>%
   arrange(desc(death_weekly_per_mil)) %>% 
   filter(death_weekly_per_mil > quantile(death_growth$death_weekly_per_mil, probs = 0.8, na.rm = TRUE) |
            death_weekly_per_mil < quantile(death_growth$death_weekly_per_mil, probs = 0.2, na.rm = TRUE) |
-           code == "CA") %>% 
+           code %in% c("CA", "FL", "TX", "NJ")) %>% 
   inner_join(my_data) %>%
   group_by(code) %>% 
   filter(as_of >= today() - days(6) ) %>% 
