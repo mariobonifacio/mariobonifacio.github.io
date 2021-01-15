@@ -285,7 +285,7 @@ ggplot() +
                                                             max(my_data$as_of, na.rm = TRUE),
                                                            " to a total of ",
                                                            sum(lifetime_data[as_of == max(as_of, na.rm = TRUE), deaths]),
-                                                           "\nand may see ", signif(sum(proj_table[as_of_lead_3wk > max(my_data$as_of, na.rm = TRUE), death_ch_proj / 3], na.rm = TRUE), 3), " per week through ", max(my_data$as_of, na.rm = TRUE) + weeks(3)))
+                                                           "\nand may see ", signif(sum(proj_table[as_of_lead_3wk > max(my_data$as_of, na.rm = TRUE), death_ch_proj / 21], na.rm = TRUE), 2), " per day through ", max(my_data$as_of, na.rm = TRUE) + weeks(3)))
        # ,caption = "California data normalized using a factor of 7"
        
 
@@ -417,7 +417,7 @@ weekly_data %>%
   geom_col() +
   theme_bw() +
   theme(legend.title = element_blank()) +
-  labs(x = "Date", y = "Deaths per million per week", title = "AZ, AL, and K are atop death rank", subtitle = str_c("Week ending ", max(weekly_data$wk_ending))) +
+  labs(x = "Date", y = "Deaths per million per week", title = "AZ, AL, and PA are atop death rank", subtitle = str_c("Week ending ", max(weekly_data$wk_ending))) +
   scale_fill_brewer(palette="Dark2")
 ```
 
