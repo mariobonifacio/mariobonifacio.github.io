@@ -1278,7 +1278,7 @@ my_data %>%
   filter(case_ch_pm > 0, death_ch_pm > 0) %>% 
   group_by(year_mo) %>% 
   top_n(n = 10, case_ch_pm) %>%
-  ggplot(mapping = aes(x = mo_of, y = case_ch_pm, label = code, color = reg_2)) +
+  ggplot(mapping = aes(x = mo_of, y = case_ch_pm, label = code, fill = reg_2)) +
   geom_label(direction = "y", segment.color = NA, position = position_jitter(width = 10, height = 60)) +
   scale_size(range = c(3, 6)) +
   theme(legend.title = element_blank()) +
@@ -1296,24 +1296,24 @@ my_data %>%
   inner_join(st_pop_2019) %>%
   inner_join(results_2016) %>%
   inner_join(pop_dens) %>%  
-  mutate(year_mo = month(as_of)) %>% 
-  group_by(year_mo, code, dens) %>% 
-  summarize(case_ch_pm = 366/12 * mean(case_ch / pop_2019 * 1000000, na.rm = TRUE),
-            death_ch_pm = 366/12 * mean(death_ch / pop_2019 * 1000000, na.rm = TRUE),
-            is_hrc = sum(t_mgn, na.rm = TRUE) < 0,
+  mutate(year_wk = str_c(year(as_of),  week(as_of), sep = "-")) %>% 
+  group_by(year_wk, code, dens) %>% 
+  summarize(case_ch_pm = 7 * mean(case_ch / pop_2019 * 1000000, na.rm = TRUE),
+            death_ch_pm = 7 * mean(death_ch / pop_2019 * 1000000, na.rm = TRUE),
+            margin_2016 = mean(t_mgn, na.rm = TRUE),
             pos_rate = sum(case_ch, na.rm = TRUE) / sum(test_ch, na.rm = TRUE),
-            mo_of = median(ymd(str_c("2020", year_mo, "1", sep = "-")))) %>%
+            wk_date = min(as_of, na.rm = TRUE)) %>%
   filter(case_ch_pm > 0, death_ch_pm > 0) %>% 
-  group_by(year_mo) %>% 
-  top_n(n = 5, death_ch_pm) %>%
-  ggplot(mapping = aes(x = mo_of, y = death_ch_pm, label = code, fill = dens)) +
+  group_by(wk_date) %>% 
+  top_n(n = 3, death_ch_pm) %>%
+  ggplot(mapping = aes(x = wk_date, y = death_ch_pm, label = code, fill = dens)) +
   geom_label(position = position_jitter(width = 10, height = 60), segment.color = NA) +
   labs(title = "States with high death rates switched from dense to sparse",
        subtitle = "Five states with most per capita COVID-19 deaths by month",
        y = "Monthly COVID-19 deaths per million residents",
        x = NULL,
        fill = "pop. per\nsq. mi.") +
-  scale_fill_gradientn(colors = c("lightblue", "white", "yellow"))
+  scale_fill_gradient2(low = "dodgerblue", aesthetics = "fill", high = "orange" , midpoint = 300)
 
 
 
@@ -1331,28 +1331,32 @@ my_data %>%
   group_by(year_wk, code) %>% 
   summarize(case_ch_pm = 7 * mean(case_ch / pop_2019 * 1000000, na.rm = TRUE),
             death_ch_pm = 7 * mean(death_ch / pop_2019 * 1000000, na.rm = TRUE),
-            is_hrc = sum(t_mgn, na.rm = TRUE) < 0,
+            margin_2016 = mean(t_mgn, na.rm = TRUE),
             pos_rate = sum(case_ch, na.rm = TRUE) / sum(test_ch, na.rm = TRUE),
             wk_date = min(as_of, na.rm = TRUE)) %>%
   filter(case_ch_pm > 0, death_ch_pm > 0) %>% 
   group_by(wk_date) %>% 
   top_n(n = 3, death_ch_pm) %>%
-  ggplot(mapping = aes(x = wk_date, y = death_ch_pm, label = code, fill = is_hrc)) +
+  ggplot(mapping = aes(x = wk_date, y = death_ch_pm, label = code, fill = margin_2016)) +
   geom_label(na.rm = TRUE, position = position_jitter(width = 3, height = 25)) +
-  theme(legend.position = "none") +
-  labs(subtitle = str_c("Five states with most per capita COVID-19 deaths by week through", max(my_data$as_of, na.rm = TRUE), sep = " "),
-       y = "Weekly COVID-19 deaths per million residents",
-       x = "Date") +
-  xlim(ymd(20200301), today())
+  # theme(legend.position = "none") +
+  labs(subtitle = str_c("Top 3 states in per capita COVID-19 deaths each week, through ", max(my_data$as_of, na.rm = TRUE), sep = " "),
+       title = "States Trump won in 2016 have led in deaths per capita since June",
+       y = "Weekly deaths per million residents",
+       x = NULL,
+       fill = "Trump margin\nin 2016") +
+  xlim(ymd(20200201), today()) +
+  scale_fill_gradient2(low = "dodgerblue", aesthetics = "fill", high = "pink" , midpoint = 0)
 
 
 ```
+
 ```{r}
 my_data %>% 
   inner_join(code_names) %>% 
   inner_join(st_pop_2019) %>%
   inner_join(results_2016) %>% 
-  mutate(year_wk = week(as_of)) %>% 
+  mutate(year_wk = str_c(year(as_of), week(as_of))) %>% 
   group_by(year_wk, code) %>% 
   summarize(case_ch_pm = 7 * mean(case_ch / pop_2019 * 1000000, na.rm = TRUE),
             death_ch_pm = 7 * mean(death_ch / pop_2019 * 1000000, na.rm = TRUE),
@@ -1420,7 +1424,7 @@ my_data %>%
             wk_date = min(as_of, na.rm = TRUE)) %>%
   filter(case_ch_pm > 0, death_ch_pm > 0) %>% 
   group_by(wk_date) %>% 
-  top_n(n = 5, case_ch_pm) %>%
+  top_n(n = 3, case_ch_pm) %>%
   ggplot(mapping = aes(x = wk_date, y = death_ch_pm, label = code, fill = reg_2)) +
   geom_label(na.rm = TRUE, position = position_jitter(width = 3, height = 25)) +
   theme(
@@ -1479,14 +1483,15 @@ my_data %>%
   group_by(wk_date) %>% 
   top_n(n = 3, case_ch_pm) %>%
   ggplot(mapping = aes(x = wk_date, y = death_ch_pm, label = code, fill = dens)) +
-  geom_label(na.rm = TRUE, position = position_jitter(width = 3, height = 25), color = "white") +
+  geom_label(na.rm = TRUE, position = position_jitter(width = 3, height = 25), color = "black") +
   # theme(legend.position = "none") +
-  labs(subtitle = str_c("Five states with most per capita COVID-19 deaths by week through", max(my_data$as_of, na.rm = TRUE), sep = " "),
+  labs(subtitle = str_c("Three states with most weekly per capita COVID-19 deathsthrough", max(my_data$as_of, na.rm = TRUE), sep = " "),
        y = "Weekly COVID-19 deaths per million residents",
        x = "Date",
-       legend = "Population density in pop. per sq. mi.") +
+       fill = "pop. per\nsq. mi.") +
   xlim(ymd(20200301), today()) +
-  theme_bw()
+  theme_bw() +
+  scale_fill_gradientn(colors = c("orange", "white", "dodgerblue"))
 ```
 
 

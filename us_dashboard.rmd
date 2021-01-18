@@ -399,13 +399,11 @@ all_data %>%
   gather(key = "time_code", value = "death_pm", 4:5) %>% 
   ggplot(mapping = aes(x = reorder(code, desc(death_pm)), y = death_pm, fill = Density)) +
   geom_col(mapping = aes(color = time_code, alpha = time_code, linetype = (time_code == "death_3wk_proj")), size = 1) +
-  
   labs(x = "State", y = "Cumulative COVID-19 deaths per million residents", fill = "population\ndensity", title = "States with high COVID-19 death rates may be dense or sparse", subtitle = str_c("COVID-19 deaths per million residents as of ", max(my_data$as_of, na.rm = TRUE))) +
   theme_bw() +
   theme(legend.position = "none") +
   scale_colour_discrete(type = c("lightgray", "dodgerblue")) +
-  scale_fill_gradient2(low = "white", mid = "white", high = "dodgerblue") +
-
+  scale_fill_gradient2(low = "white", mid = "white", high = "dodgerblue")
 ```
 
 
