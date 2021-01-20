@@ -198,7 +198,8 @@ proj_table <- rbind(proj_table,
                                death_ch_proj_se = temp_tbl[,case_ch] *
                                           summary(lm("death_ch_lead_3wk ~ 0 + case_ch + pos_rate_lag_1wk", temp_tbl, na.action = na.omit))[[4]][3] +
                                           temp_tbl[,pos_rate_lag_1wk] *
-                                          summary(lm("death_ch_lead_3wk ~ 0 + case_ch + pos_rate_lag_1wk", temp_tbl, na.action = na.omit))[[4]][4]))
+                                          summary(lm("death_ch_lead_3wk ~ 0 + case_ch + pos_rate_lag_1wk", temp_tbl, na.action = na.omit))[[4]][4])
+                    )
 }
   
 

@@ -284,9 +284,9 @@ case_growth %>%
   inner_join(code_names) %>% 
   inner_join(my_data) %>% 
   arrange(desc(cases_weekly_per_mil)) %>% 
-  filter(cases_weekly_per_mil > quantile(case_growth$cases_weekly_per_mil, probs = 0.8, na.rm = TRUE) |
+  filter((cases_weekly_per_mil > quantile(case_growth$cases_weekly_per_mil, probs = 0.8, na.rm = TRUE) |
            cases_weekly_per_mil < quantile(case_growth$cases_weekly_per_mil, probs = 0.2, na.rm = TRUE) |
-           code %in% c("CA", "TX", "FL", "NJ")) %>% 
+           code %in% c("CA", "TX", "FL", "NJ")) & (code != "HI")) %>% 
   group_by(code) %>% 
   filter(as_of >= today() - days(13) ) %>% 
   mutate(pos_rate = sum(case_ch) / sum(test_ch)) %>% 
@@ -1308,9 +1308,9 @@ my_data %>%
   top_n(n = 3, death_ch_pm) %>%
   ggplot(mapping = aes(x = wk_date, y = death_ch_pm, label = code, fill = dens)) +
   geom_label(position = position_jitter(width = 10, height = 60), segment.color = NA) +
-  labs(title = "States with high death rates switched from dense to sparse",
-       subtitle = "Five states with most per capita COVID-19 deaths by month",
-       y = "Monthly COVID-19 deaths per million residents",
+  labs(title = "Less dense states have led death rates since late June",
+       subtitle = str_c("Three states with most per capita COVID-19 deaths by week through ", max(my_data[,as_of])),
+       y = "Weekly COVID-19 deaths per million residents",
        x = NULL,
        fill = "pop. per\nsq. mi.") +
   scale_fill_gradient2(low = "dodgerblue", aesthetics = "fill", high = "orange" , midpoint = 300)
@@ -1341,7 +1341,7 @@ my_data %>%
   geom_label(na.rm = TRUE, position = position_jitter(width = 3, height = 25)) +
   # theme(legend.position = "none") +
   labs(subtitle = str_c("Top 3 states in per capita COVID-19 deaths each week, through ", max(my_data$as_of, na.rm = TRUE), sep = " "),
-       title = "States Trump won in 2016 have led in deaths per capita since June",
+       title = "States Trump won in 2016 have led death rates since late June",
        y = "Weekly deaths per million residents",
        x = NULL,
        fill = "Trump margin\nin 2016") +
@@ -1398,12 +1398,13 @@ my_data %>%
   mutate(wk_dens = mean(dens, na.rm = TRUE)) %>% 
   ggplot(mapping = aes(x = wk_date, y = case_ch_pm)) +
   geom_label(mapping = aes(label = code, fill = reg_2), na.rm = TRUE, position = position_jitter(width = 3, height = 25)) +
-  geom_col(mapping = aes(y = wk_dens), alpha = .4) +
+  # geom_col(mapping = aes(y = wk_dens), alpha = .4) +
   labs(subtitle = str_c("Three states with most new per capita COVID-19 cases by week through", max(my_data$as_of, na.rm = TRUE), sep = " "),
        y = "Weekly new COVID-19 cases per million residents",
        x = "Date",
-       legend = NULL,
-       caption = "Gray bars represent mean population density of top states") +
+       legend = NULL
+       # ,caption = "Gray bars represent mean population density of top states"
+       ) +
   xlim(ymd(20200301), today()) +
   theme(legend.title = element_blank())
 
@@ -1430,7 +1431,7 @@ my_data %>%
   theme(
     # legend.position = "none"
     legend.title = element_blank()) +
-  labs(subtitle = str_c("Five states with most per capita COVID-19 deaths by week through", max(my_data$as_of, na.rm = TRUE), sep = " "),
+  labs(subtitle = str_c("Three states with most per capita COVID-19 deaths by week through", max(my_data$as_of, na.rm = TRUE), sep = " "),
        y = "Weekly COVID-19 deaths per million residents",
        x = "Date") +
   xlim(ymd(20200301), today())
