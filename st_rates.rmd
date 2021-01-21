@@ -1431,7 +1431,7 @@ my_data %>%
   theme(
     # legend.position = "none"
     legend.title = element_blank()) +
-  labs(subtitle = str_c("Three states with most per capita COVID-19 deaths by week through", max(my_data$as_of, na.rm = TRUE), sep = " "),
+  labs(subtitle = str_c("Top 3 states in per capita COVID-19 deaths by week, through ", max(my_data$as_of, na.rm = TRUE), sep = " "),
        y = "Weekly COVID-19 deaths per million residents",
        x = "Date") +
   xlim(ymd(20200301), today())
@@ -1486,7 +1486,7 @@ my_data %>%
   ggplot(mapping = aes(x = wk_date, y = death_ch_pm, label = code, fill = dens)) +
   geom_label(na.rm = TRUE, position = position_jitter(width = 3, height = 25), color = "black") +
   # theme(legend.position = "none") +
-  labs(subtitle = str_c("Three states with most weekly per capita COVID-19 deathsthrough", max(my_data$as_of, na.rm = TRUE), sep = " "),
+  labs(subtitle = str_c("Three states with most weekly per capita COVID-19 deaths through", max(my_data$as_of, na.rm = TRUE), sep = " "),
        y = "Weekly COVID-19 deaths per million residents",
        x = "Date",
        fill = "pop. per\nsq. mi.") +
@@ -1879,5 +1879,25 @@ cor_data <- my_data %>%
 #   .[[1]]
 # 
 # (1006 - 0103) / 103
+```
+
+
+```{r}
+m_data <- data.table(survey_date = ymd(c(19660801, 19650501, 19640801, 19630501)), tot_fav = c(.33, .45, .44, .41), tot_unfav = c(.63, .46, .38, .37))
+```
+
+```{r}
+m_data %>% 
+  ggplot(mapping = aes(survey_date)) +
+  geom_line(aes(y = tot_fav), color = "dodgerblue", size = 1.25) +
+  geom_line(aes(y = tot_unfav), color = "darkgray", size = 1.25) +
+  geom_label(aes(x = unique(m_data[year(survey_date) == 1964, survey_date]), y = unique(m_data[year(survey_date) == 1964, tot_fav]), label = "Favorable"), color = "dodgerblue") +
+  geom_label(aes(x = m_data[year(survey_date) == 1965, survey_date], y = m_data[year(survey_date) == 1965, tot_unfav], label = "Unfavorable"), color = "dark gray") +
+  geom_hline(aes(yintercept = .94), color = "lightblue", size = 1.25, linetype = "dashed") + geom_label(x = ymd(19650601), y = .94, label = "Favorable in Aug. 2011", color = "dodgerblue") +
+  geom_hline(aes(yintercept = .04), color = "gray", size = 1.25, linetype = "dashed") + geom_label(x = ymd(19650601), y = .04, label = "Unfavorable in Aug. 2011", color = "darkgray") +
+  labs(x = "Date",
+       y = "Share of respondents by answer",
+       caption = "Source: Contemporary poll data from Gallup\nhttps://tinyurl.com/y3zgrl5a",
+       title = "While he lived, the public viewed MLK increasingly less favorably ")
 ```
 

@@ -44,11 +44,11 @@ st_pop_2019 <- read_csv("st_pop.csv") %>%
 code_names <- data.table(cbind(name = c(state.name, "District of Columbia"),
                  code = c(state.abb, "DC"),
                  region = as.character(state.region),
-                 reg_2 = c("South", "Plain and Mountain", "Southwest", "Middle South", "West Coast", "Southwest", "Northeast", "Northeast", "South", "South",
-                           "West Coast", "Plain and Mountain", "Midwest", "Midwest", "Midwest", "Plain and Mountain", "Middle South", "South", "Northeast", "Northeast",
-                           "Northeast", "Midwest", "Midwest", "South", "Midwest", "Plain and Mountain", "Plain and Mountain", "Southwest", "Northeast", "Northeast",
-                           "Southwest", "Northeast", "South", "Plain and Mountain", "Midwest", "Plain and Mountain", "West Coast", "Northeast", "Northeast", "South",
-                           "Plain and Mountain", "Middle South", "Southwest", "Plain and Mountain", "Northeast", "South", "West Coast", "Middle South", "Midwest", "Plain and Mountain",
+                 reg_2 = c("South", "sky", "Southwest", "Middle South", "West Coast", "Southwest", "Northeast", "Northeast", "South", "South",
+                           "West Coast", "sky", "Midwest", "Midwest", "Midwest", "sky", "Middle South", "South", "Northeast", "Northeast",
+                           "Northeast", "Midwest", "Midwest", "South", "Midwest", "sky", "sky", "Southwest", "Northeast", "Northeast",
+                           "Southwest", "Northeast", "South", "sky", "Midwest", "sky", "West Coast", "Northeast", "Northeast", "South",
+                           "sky", "Middle South", "Southwest", "sky", "Northeast", "South", "West Coast", "Middle South", "Midwest", "sky",
                            "Northeast")))
 ```
 
@@ -168,7 +168,8 @@ cor_data <- my_data %>%
          as_of_lead_3wk = as_of + weeks(3)) %>%
   inner_join(lag_1wk_data) %>% 
   left_join(lead_3wk_data) %>% 
-  arrange(desc(as_of_lead_3wk))
+  arrange(desc(as_of_lead_3wk)) %>% 
+  data.table()
 
 
 ```
@@ -182,34 +183,18 @@ proj_table <- data.table(code = character(),
                          death_ch_proj = double(),
                          death_ch_proj_se = double())
 
-for (i in code_names$code) {
+best_fit1 <- function(test_state){ lm(data = cor_data[code == test_state], formula = death_ch_lead_3wk ~ 0 + pos_rate_lag_1wk + case_ch)[[1]][[1]] }
+best_fit2 <- function(test_state){ lm(data = cor_data[code == test_state], formula = death_ch_lead_3wk ~ 0 + pos_rate_lag_1wk + case_ch)[[1]][[2]] }
+best_fitX <- function(test_state){ lm(data = cor_data[code == test_state], formula = death_ch_lead_3wk ~ 0 + case_ch)[[1]][[1]] }
 
-temp_tbl <- cor_data %>%
-    filter(code %in% i)
-
-proj_table <- rbind(proj_table,
-                    data.table(code = temp_tbl$code,
-                               as_of_lead_3wk = temp_tbl$as_of_lead_3wk,
-                               death_ch_lead_3wk = temp_tbl$death_ch_lead_3wk,
-                               death_ch_proj = temp_tbl[,case_ch] *
-                                          summary(lm("death_ch_lead_3wk ~ 0 + case_ch + pos_rate_lag_1wk", temp_tbl, na.action = na.omit))[[4]][1] +
-                                          temp_tbl[,pos_rate_lag_1wk] *
-                                          summary(lm("death_ch_lead_3wk ~ 0 + case_ch + pos_rate_lag_1wk", temp_tbl, na.action = na.omit))[[4]][2],
-                               death_ch_proj_se = temp_tbl[,case_ch] *
-                                          summary(lm("death_ch_lead_3wk ~ 0 + case_ch + pos_rate_lag_1wk", temp_tbl, na.action = na.omit))[[4]][3] +
-                                          temp_tbl[,pos_rate_lag_1wk] *
-                                          summary(lm("death_ch_lead_3wk ~ 0 + case_ch + pos_rate_lag_1wk", temp_tbl, na.action = na.omit))[[4]][4])
-                    )
-}
+coeff_tbl <- data.table(code = character(), coeff_pos_rate = double(), coeff_cases = double(), coeff_cases_only = double())
   
+for(i in code_names[,code]) coeff_tbl <- rbind(coeff_tbl, data.table(code = i, coeff_pos_rate = best_fit1(i), coeff_cases = best_fit2(i), coeff_cases_only = best_fitX(i))[coeff_pos_rate < 0, coeff_cases := coeff_cases_only][coeff_cases < 0, c("coeff_pos_rate", "coeff_cases") := list(0, coeff_cases_only)])
 
-
-## case_ch coeff summary(lm("death_ch_lead_3wk ~ 0 + case_ch + pos_rate_lag_1wk", temp_tbl, na.action = na.omit))[[4]][1]
-## case_ch coeff SE summary(lm("death_ch_lead_3wk ~ 0 + case_ch + pos_rate_lag_1wk", temp_tbl, na.action = na.omit))[[4]][3]
-## pos_rate_lag_1wk coeff summary(lm("death_ch_lead_3wk ~ 0 + case_ch + pos_rate_lag_1wk", temp_tbl, na.action = na.omit))[[4]][2]
-## pos_rate_lag_1wk coeff SE summary(lm("death_ch_lead_3wk ~ 0 + case_ch + pos_rate_lag_1wk", temp_tbl, na.action = na.omit))[[4]][4]
-
-
+proj_table <- cor_data %>% 
+  inner_join(coeff_tbl[,1:3]) %>% 
+  mutate(death_ch_proj = coeff_pos_rate * pos_rate_lag_1wk + coeff_cases * case_ch)
+  
 
 ```
 
@@ -271,29 +256,17 @@ temp_tbl <- proj_table %>%
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 ggplot() +
   theme_bw() +
-
   geom_col(mapping = aes(x = temp_tbl[, wk_ending], y = temp_tbl[,death_ch_us]), size = 1, na.rm = TRUE, color = "dodgerblue") +
   geom_col(mapping = aes(x = temp_tbl[wk_ending > max(my_data$as_of, na.rm = TRUE), wk_ending], y = temp_tbl[wk_ending > max(my_data$as_of, na.rm = TRUE), death_ch_proj_us]), na.rm = TRUE, size = 1, fill = "white", color = "darkgray", linetype = "dashed") +
-  
-  # geom_col(mapping = aes(x = temp_tbl[is_ca == FALSE, wk_ending], y = temp_tbl[is_ca == FALSE, death_ch_us]), size = 1, na.rm = TRUE, color = "dodgerblue") +
-  # geom_col(mapping = aes(x = temp_tbl[is_ca == FALSE & wk_ending > max(my_data$as_of, na.rm = TRUE), wk_ending], y = temp_tbl[is_ca == FALSE & wk_ending > max(my_data$as_of, na.rm = TRUE), death_ch_proj_us]), na.rm = TRUE, size = 1, fill = "white", color = "darkgray", linetype = "dashed") +
-  
-  
   theme(legend.title = element_blank()) +
   labs(x = "Date", y = "Deaths per million per week", title = str_c("The US saw ",
                                                            sum(weekly_data$death_weekly, na.rm = TRUE),
                                                            " deaths week ending ",
                                                             max(my_data$as_of, na.rm = TRUE),
                                                            " to a total of ",
-                                                           sum(lifetime_data[as_of == max(as_of, na.rm = TRUE), deaths]),
+                                                           sum(lifetime_data[as_of == max(as_of, na.rm = TRUE), deaths], 11035),
                                                            "\nand may see ", signif(sum(proj_table[as_of_lead_3wk > max(my_data$as_of, na.rm = TRUE), death_ch_proj / 21], na.rm = TRUE), 2), " per day through ", max(my_data$as_of, na.rm = TRUE) + weeks(3)))
-       # ,caption = "California data normalized using a factor of 7"
-       
 
-  
-  
-  #  + geom_line(mapping = aes(x = temp_tbl[is_ca == TRUE & wk_ending <= max(my_data$as_of, na.rm = TRUE), wk_ending], y = temp_tbl[is_ca == TRUE & wk_ending <= max(my_data$as_of, na.rm = TRUE), death_ch_us]), size = 1, na.rm = TRUE, color = "orange") +
-  # geom_line(mapping = aes(x = temp_tbl[is_ca == TRUE & wk_ending > max(my_data$as_of, na.rm = TRUE), wk_ending], y = temp_tbl[is_ca == TRUE & wk_ending > max(my_data$as_of, na.rm = TRUE), death_ch_proj_us]), size = 1, na.rm = TRUE, color = "darkorange", linetype = "dashed") 
 
 ```
 
@@ -412,12 +385,12 @@ all_data %>%
 weekly_data %>% 
   filter(death_weekly_pm > quantile(weekly_data$death_weekly_pm, probs = 0.7, na.rm = TRUE) |
            # death_weekly_pm < quantile(weekly_data$death_weekly_pm, probs = 0.2, na.rm = TRUE) |
-           code == "CA") %>%
+           code %in% c("CA", "TX", "FL")) %>%
   ggplot(mapping = aes(x = reorder(x = code, X = desc(death_weekly_pm)), y = death_weekly_pm, fill = reg_2)) +
   geom_col() +
   theme_bw() +
   theme(legend.title = element_blank()) +
-  labs(x = "Date", y = "Deaths per million per week", title = "AZ, AL, and PA are atop death rank", subtitle = str_c("Week ending ", max(weekly_data$wk_ending))) +
+  labs(x = "Date", y = "Deaths per million per week", title = "AZ, PA, and MS are atop weekly death rank", subtitle = str_c("Week ending ", max(weekly_data$wk_ending))) +
   scale_fill_brewer(palette="Dark2")
 ```
 
