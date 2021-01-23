@@ -555,6 +555,31 @@ my_data %>%
 ```
 
 
+```{r}
+pk <- c("OK")
+
+
+my_data %>% 
+  filter(code %in% pk) %>%
+  mutate(case_ch = as.double(case_ch)) %>%
+  group_by(as_of) %>%
+  summarize(us_cases = sum(cases, na.rm = TRUE),
+            us_cases_ch = sum(case_ch, na.rm = TRUE),
+            us_deaths = sum(death, na.rm = TRUE),
+            us_deaths_ch = sum(death_ch, na.rm = TRUE)) %>% 
+  filter(us_deaths > 9,
+         weekdays(as_of) %in% c("Sunday", "Tuesday")) %>% 
+  mutate(since = min(as_of),
+         is_day = if_else(weekdays(as_of) == weekdays(my_data[[1,1]]), 0.3, 0.1)) %>% 
+  ggplot(mapping = aes(x = as_of, y = us_cases_ch, color = weekdays(as_of))) +
+  geom_smooth(alpha = 0, span = 0.3) +
+  theme(legend.position = "none") +
+  labs(title = "Two states whose paths diverged in November", subtitle = str_c("New cases of COVID-19 per day since", min(my_data[death_ch > 9 & code == 'OK', as_of]), sep = " "), x = NULL, y = "New daily cases", caption = "Just kidding. The orange line connects Oklahoma case numbers reported\non Sundays and the blue is Oklahoma case numbers from Tuesdays") +
+  scale_color_manual(values = c("orange", "blue"))
+```
+
+
+
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 pk <- c("")
 
@@ -571,7 +596,7 @@ my_data %>%
   # filter(reg_2 %in% c("South", "Midwest", "Northeast", "Southwest")) %>% 
   ggplot(mapping = aes(x = as_of, y = us_cases_ch/pop_2019 * 1000000)) +
   # geom_smooth(linetype = 0, mapping = aes(fill = weekdays(as_of)), alpha = 0.1) +
-  geom_smooth(size = 1, linetype = 1, mapping = aes(color = reg_2, fill = reg_2), span = .5, alpha = .1) +
+  geom_smooth(size = 1, linetype = 1, mapping = aes(color = reg_2, fill = reg_2), span = .3, alpha = .1) +
   geom_vline(xintercept = ymd("2020-05-22") + days(5), color = "red", linetype = 2) +
   geom_vline(xintercept = ymd("2020-05-29") + days(5), color = "blue", linetype = 2) +
   theme(legend.title = element_blank()) +
@@ -1336,10 +1361,11 @@ my_data %>%
             wk_date = min(as_of, na.rm = TRUE)) %>%
   filter(case_ch_pm > 0, death_ch_pm > 0) %>% 
   group_by(wk_date) %>% 
+  mutate(nat_death = sum(death_ch_pm)) %>% 
   top_n(n = 3, death_ch_pm) %>%
+  mutate(three_share = sum(death_ch_pm) / nat_death) %>% 
   ggplot(mapping = aes(x = wk_date, y = death_ch_pm, label = code, fill = margin_2016)) +
   geom_label(na.rm = TRUE, position = position_jitter(width = 3, height = 25)) +
-  # theme(legend.position = "none") +
   labs(subtitle = str_c("Top 3 states in per capita COVID-19 deaths each week, through ", max(my_data$as_of, na.rm = TRUE), sep = " "),
        title = "States Trump won in 2016 have led death rates since late June",
        y = "Weekly deaths per million residents",

@@ -44,11 +44,11 @@ st_pop_2019 <- read_csv("st_pop.csv") %>%
 code_names <- data.table(cbind(name = c(state.name, "District of Columbia"),
                  code = c(state.abb, "DC"),
                  region = as.character(state.region),
-                 reg_2 = c("South", "sky", "Southwest", "Middle South", "West Coast", "Southwest", "Northeast", "Northeast", "South", "South",
-                           "West Coast", "sky", "Midwest", "Midwest", "Midwest", "sky", "Middle South", "South", "Northeast", "Northeast",
-                           "Northeast", "Midwest", "Midwest", "South", "Midwest", "sky", "sky", "Southwest", "Northeast", "Northeast",
-                           "Southwest", "Northeast", "South", "sky", "Midwest", "sky", "West Coast", "Northeast", "Northeast", "South",
-                           "sky", "Middle South", "Southwest", "sky", "Northeast", "South", "West Coast", "Middle South", "Midwest", "sky",
+                 reg_2 = c("South", "Sky", "Southwest", "Middle South", "West Coast", "Southwest", "Northeast", "Northeast", "South", "South",
+                           "West Coast", "Sky", "Midwest", "Midwest", "Midwest", "Sky", "Middle South", "South", "Northeast", "Northeast",
+                           "Northeast", "Midwest", "Midwest", "South", "Midwest", "Sky", "Sky", "Southwest", "Northeast", "Northeast",
+                           "Southwest", "Northeast", "South", "Sky", "Midwest", "Sky", "West Coast", "Northeast", "Northeast", "South",
+                           "Sky", "Middle South", "Southwest", "Sky", "Northeast", "South", "West Coast", "Middle South", "Midwest", "Sky",
                            "Northeast")))
 ```
 
@@ -194,6 +194,8 @@ for(i in code_names[,code]) coeff_tbl <- rbind(coeff_tbl, data.table(code = i, c
 proj_table <- cor_data %>% 
   inner_join(coeff_tbl[,1:3]) %>% 
   mutate(death_ch_proj = coeff_pos_rate * pos_rate_lag_1wk + coeff_cases * case_ch)
+
+proj_table[between(as_of, max(proj_table[,as_of]) - days(21), max(proj_table[,as_of]) + days(1)),case_ch] %>% sum()
   
 
 ```
@@ -237,18 +239,10 @@ temp_tbl <- proj_table %>%
                                wday(as_of_lead_3wk) < wday(max(my_data$as_of, na.rm = TRUE)) ~
                                  as_of_lead_3wk + days(wday(max(my_data$as_of, na.rm = TRUE)) - wday(as_of_lead_3wk)),
                                wday(as_of_lead_3wk) > wday(max(my_data$as_of, na.rm = TRUE)) ~
-                                 as_of_lead_3wk + days(7 + wday(max(my_data$as_of, na.rm = TRUE)) - wday(as_of_lead_3wk)))
-         # ,is_ca = (code == "CA")
-         ) %>% 
-  group_by(wk_ending
-           # , is_ca
-           ) %>% 
+                                 as_of_lead_3wk + days(7 + wday(max(my_data$as_of, na.rm = TRUE)) - wday(as_of_lead_3wk)))) %>% 
+  group_by(wk_ending) %>% 
   summarize(death_ch_us = sum(death_ch_lead_3wk, na.rm = TRUE),
             death_ch_proj_us = sum(death_ch_proj, na.rm = TRUE)) %>% 
-  # mutate(death_ch_us = if_else(is_ca, death_ch_us * 7,
-  #                              as.double(death_ch_us)),
-  #        death_ch_proj_us = if_else(is_ca, death_ch_proj_us * 7,
-  #                                   death_ch_proj_us)) %>% 
   data.table()
 ```
 
@@ -259,13 +253,13 @@ ggplot() +
   geom_col(mapping = aes(x = temp_tbl[, wk_ending], y = temp_tbl[,death_ch_us]), size = 1, na.rm = TRUE, color = "dodgerblue") +
   geom_col(mapping = aes(x = temp_tbl[wk_ending > max(my_data$as_of, na.rm = TRUE), wk_ending], y = temp_tbl[wk_ending > max(my_data$as_of, na.rm = TRUE), death_ch_proj_us]), na.rm = TRUE, size = 1, fill = "white", color = "darkgray", linetype = "dashed") +
   theme(legend.title = element_blank()) +
-  labs(x = "Date", y = "Deaths per million per week", title = str_c("The US saw ",
+  labs(x = "Date", y = "Deaths per million per week", title = str_c("The US experienced ",
                                                            sum(weekly_data$death_weekly, na.rm = TRUE),
-                                                           " deaths week ending ",
+                                                           " COVID-19 deaths the week ending ",
                                                             max(my_data$as_of, na.rm = TRUE),
-                                                           " to a total of ",
+                                                           "\nto a total of ",
                                                            sum(lifetime_data[as_of == max(as_of, na.rm = TRUE), deaths], 11035),
-                                                           "\nand may see ", signif(sum(proj_table[as_of_lead_3wk > max(my_data$as_of, na.rm = TRUE), death_ch_proj / 21], na.rm = TRUE), 2), " per day through ", max(my_data$as_of, na.rm = TRUE) + weeks(3)))
+                                                           " and may see ", signif(sum(proj_table[as_of_lead_3wk > max(my_data$as_of, na.rm = TRUE), death_ch_proj / 21], na.rm = TRUE), 2), " per day through ", max(my_data$as_of, na.rm = TRUE) + weeks(3)))
 
 
 ```
@@ -280,7 +274,7 @@ tot_data <- my_data %>%
   data.table()
 
 tot_data %>% 
-  filter(death_pm > quantile(tot_data[,death_pm], probs = .7, na.rm = TRUE) | code %in% c("CA", "FL")) %>% 
+  filter(death_pm > quantile(tot_data[,death_pm], probs = .7, na.rm = TRUE) | code %in% c("CA", "FL", "TX")) %>% 
   ggplot() +
   geom_col(mapping = aes(x = reorder(code, X = desc(death_pm)), y = death_pm, fill = Density), color = "dodgerblue") +
   labs(x = "state", y = "Weekly deaths per million residents", title = stringr::str_c("States with most cumulative deaths per million"), subtitle = str_c("As of ", max(tot_data[,as_of]), sep = " ")) +
