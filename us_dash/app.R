@@ -36,12 +36,11 @@ s <- shinyServer(function(input, output)
   })
 
   output$plotgraph = renderPlot({
-    ptlist <- list(pt1(),pt2(),pt3())
-    wtlist <- c(input$wt1,input$wt2,input$wt3)
+    ptlist <- list(pt1(),pt2())
+
     # remove the null plots from ptlist and wtlist
     to_delete <- !sapply(ptlist,is.null)
     ptlist <- ptlist[to_delete] 
-    wtlist <- wtlist[to_delete]
     if (length(ptlist)==0) return(NULL)
     
     grid.arrange(grobs=ptlist,widths=wtlist,ncol=length(ptlist))
