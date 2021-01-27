@@ -285,66 +285,33 @@ tot_data %>%
 
 
 ```{r impute_cases_from_death, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
-c2t_data <- cor_data %>%
-  inner_join(select(my_data, as_of, code, test_ch)) %>%
-  mutate(pos_rate = case_ch / test_ch,
-         death_ch_lead_3wk = as.double(death_ch_lead_3wk),
-         cfr = death_ch_lead_3wk / case_ch) %>%
-  filter(as_of > mdy(06012020),
-         !is.na(death_ch_lead_3wk),
-         between(pos_rate, 0.005, 0.50)) %>% 
-  data.table()
-           
-c2t_coeff <- data.table(code = character(), coeff = double())
-
-for (i in code_names[,code]) {
-  c2t_coeff <- rbind(c2t_coeff,
-                     data.table(code = i,
-                                coeff = lm(data = c2t_data[code == i,],
-                                           formula = cfr ~ pos_rate)[[1]][[1]]))
-}
-```
 
 
-```{r impute_cases_from_posrate, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
-case_model <- c2t_data %>% 
-  inner_join(c2t_coeff) %>% 
-  mutate(case_ch_model = death_ch_lead_3wk / coeff) %>% 
-  unique() %>%
-  mutate(wk_ending = case_when(wday(as_of) == wday(max(my_data$as_of, na.rm = TRUE))
-                               ~ as_of,
-                               wday(as_of) < wday(max(my_data$as_of, na.rm = TRUE))
-                               ~  as_of + days(wday(max(my_data$as_of, na.rm = TRUE)) - wday(as_of)),
-                               wday(as_of) > wday(max(my_data$as_of, na.rm = TRUE))
-                               ~ as_of + days(7 + wday(max(my_data$as_of, na.rm = TRUE)) - wday(as_of)))) %>% 
-  data.table()
-```
+
+coeff_2_table <- data.table(code = character(), coeff_pos_rate = double())
 
 
-```{r impute_cases_from_posrate_2, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
-case_model_st_wk <- case_model %>%
-  group_by(wk_ending, code) %>% 
-  summarize(case_ch = sum(case_ch),
-            case_ch_model = sum(case_ch_model),
-            pos_rate = sum(case_ch) / sum(test_ch),
-            pos_rate_lag_1wk = mean(pos_rate_lag_1wk),
-            cfr = sum(death_ch_lead_3wk) / sum(case_ch),
-            c2t = case_ch * pos_rate,
-            death_ch_lead_3wk = sum(death_ch_lead_3wk, na.rm = TRUE)) %>%
-  filter(code == "NV",
-         wk_ending > ymd(20200601)) %>% 
-  data.table()
 
-case_model_st_wk %>% 
-  cor(x = pos_rate_lag_1wk)
-
-case_model_st_wk %>% 
-  ggplot(aes(pos_rate_lag_1wk)) +
-  geom_smooth(aes(y = case_ch), method = "lm") +
-  geom_smooth(aes(y = death_ch_lead_3wk * max(case_model_st_wk[,case_ch], na.rm = TRUE) / max(case_model_st_wk[,death_ch_lead_3wk], na.rm = TRUE)), color = "dodgerblue", method = "lm")
+for (j in code_names[,code]) { lm(data = cor_data[code == j,list(as_of, code, case_ch, as_of_lag_1wk, pos_rate_lag_1wk)],
+                                  formula = case_ch ~ 0 + pos_rate_lag_1wk)[1][1]
   
+}
 
-
+my_data %>% 
+  right_join(proj_table, by = c("as_of" = "as_of_lead_3wk" , "code")) %>% 
+  inner_join(code_names) %>% 
+  inner_join(st_pop_2019) %>% 
+  mutate(death_ch_proj = if_else(as_of > max(my_data$as_of, na.rm = TRUE), death_ch_proj, as.double(death_ch)),
+         wk_ending = case_when(wday(as_of) == wday(max(my_data$as_of, na.rm = TRUE)) ~
+                                 as_of,
+                               wday(as_of) < wday(max(my_data$as_of, na.rm = TRUE)) ~
+                                 as_of + days(wday(max(my_data$as_of, na.rm = TRUE)) - wday(as_of)),
+                               wday(as_of) > wday(max(my_data$as_of, na.rm = TRUE)) ~
+                                 as_of + days(7 + wday(max(my_data$as_of, na.rm = TRUE)) - wday(as_of)))) %>% 
+  group_by(wk_ending) %>% 
+  summarize(tot_death_ch = sum(death_ch),
+            tot_death_ch_proj = sum(death_ch_proj)) %>% 
+  data.table()
 
 ## As pos rate approaches 0.5 
 ```
@@ -362,7 +329,7 @@ all_data %>%
   mutate(death_pm = death / pop_2019 * 1000000,
          death_3wk_proj_tot_pm = death_3wk_proj + death_pm) %>% 
   arrange(desc(death_3wk_proj_tot_pm)) %>%
-  slice_max(order_by = death_pm, n = 15) %>%
+  filter(death_pm > quantile(tot_data[,death_pm], probs = .7, na.rm = TRUE) | code %in% c("CA", "FL", "TX", "AZ")) %>% 
   select(code, death, Density, death_3wk_proj, death_pm, death_3wk_proj_tot_pm) %>% 
   gather(key = "time_code", value = "death_pm", 4:5) %>% 
   ggplot(mapping = aes(x = reorder(code, desc(death_pm)), y = death_pm, fill = Density)) +
@@ -409,7 +376,7 @@ weekly_data %>%
 proj_sum %>%
   filter(death_3wk_proj > quantile(proj_sum$death_3wk_proj, 0.7) |
            # death_3wk_proj < quantile(proj_sum$death_3wk_proj, 0.2) |
-           code %in% c("CA", "FL")) %>% 
+           code %in% c("CA", "FL", "TX", "AZ")) %>% 
   ggplot(mapping = aes(x = reorder(code, desc(death_3wk_proj)), y = death_3wk_proj, color = reg_2, fill = reg_2)) +
   geom_col(alpha = 0.2, linetype = "dashed", size = 1) +
   theme_bw() +
