@@ -1,0 +1,96 @@
+---
+title: "US COVID-19 Dashboard"
+output:
+  html_document:
+    df_print: paged
+---
+
+load libraries
+
+```{r include=FALSE}
+library(shiny)
+library(jsonlite)
+library(data.table)
+library(tidyverse)
+library(lubridate)
+library(ggthemes)
+library(gridExtra)
+
+options(scipen = 999)
+```
+
+
+
+Load static data
+
+```{r include=FALSE}
+static_data <- data.table(name = c("Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming", "District of Columbia"), 
+state = c("AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY", "DC"), 
+pop = c(4908620, 734002, 7378490, 3039000, 39937500, 5845530, 3563080, 982895, 21993000, 10736100, 1412690, 1826160, 12659700, 6745350, 3179850, 2910360, 4499690, 4645180, 1345790, 6083120, 6976600, 10045000, 5700670, 2989260, 6169270, 1086760, 1952570, 3139660, 1371250, 8936570, 2096640, 19440500, 10611900, 761723, 11747700, 3954820, 4301090, 12820900, 1056160, 5210100, 903027, 6897580, 29472300, 3282120, 628061, 8626210, 7797100, 1778070, 5851750, 567025, 705749),
+area = c(50645, 570641, 113594, 52035, 155779, 103642, 4842, 1949, 53625, 57513, 6423, 82643, 55519, 35826, 55857, 81759, 39486, 43204, 30843, 9707, 7800, 56539, 79627, 46923, 68742, 145546, 76824, 109781, 8953, 7354, 121298, 47126, 48618, 69001, 40861, 68595, 95988, 44743, 1034, 30061, 75811, 41235, 261232, 82170, 9217, 39490, 66456, 24038, 54158, 97093, 68.3),
+region = c("South", "Sky", "Southwest", "Middle South", "West Coast", "Southwest", "Northeast", "Northeast", "South", "South", "West Coast", "Sky", "Midwest", "Midwest", "Midwest", "Sky", "Middle South", "South", "Northeast", "Northeast", "Northeast", "Midwest", "Midwest", "South", "Midwest", "Sky", "Sky", "Southwest", "Northeast", "Northeast", "Southwest", "Northeast", "South", "Sky", "Midwest", "Sky", "West Coast", "Northeast", "Northeast", "South", "Sky", "Middle South", "Southwest", "Sky", "Northeast", "South", "West Coast", "Middle South", "Midwest", "Sky", "Northeast"))[, c("pop", "pop_dens") := list(as.integer(pop), pop / area)]
+
+```
+
+Pre-load predictive functions
+```{r include=FALSE}
+est_casepos_case <- function(test_tbl, lead3_death, case, lag1_pos) { lm(lead3_death ~ 0 + case + lag1_pos, test_tbl)[1][1] }
+est_casepos_case <- function(test_tbl, lead3_death, case, lag1_pos) { lm(lead3_death ~ 0 + case + lag1_pos, test_tbl)[2][1] }
+est_case <- function(test_tbl, lead3_death, case) { lm(lead3_death ~ 0 + case, test_tbl)[1][1] }
+est_pos <- function(test_tbl, lead3_death, lag1_pos) { lm(lead3_death ~ 0 + lag1_pos, test_tbl)[1][1] }
+```
+
+
+```{r include=FALSE}
+all_data <- data.table(fromJSON("https://covidtracking.com/api/v1/states/daily.json"))
+```
+
+```{r include=FALSE}
+data_date <- ymd(max(all_data[,date], na.rm = TRUE))
+```
+
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+clean_data <- all_data[state %in% static_data[,state],][
+  ,wk_ending := case_when(wday(ymd(date)) == wday(data_date) ~ ymd(date),
+                          wday(ymd(date)) < wday(data_date) ~ ymd(date) + days(wday(data_date) - wday(ymd(date))),
+                          TRUE ~ ymd(date) + days(7 + wday(data_date) - wday(ymd(date))))][
+                            ,c("hospitalizedCurrently",
+                               "inIcuCurrently",
+                               "onVentilatorCurrently",
+                               "death",
+                               "positiveIncrease",
+                               "negativeIncrease",
+                               "totalTestResultsIncrease",
+                               "deathIncrease",
+                               "hospitalizedIncrease") := list(mean(hospitalizedCurrently, na.rm = TRUE),
+                                                               mean(inIcuCurrently, na.rm = TRUE),
+                                                               mean(onVentilatorCurrently, na.rm = TRUE),
+                                                               max(death, na.rm = TRUE),
+                                                               sum(positiveIncrease, na.rm = TRUE),
+                                                               sum(negativeIncrease, na.rm = TRUE),
+                                                               sum(totalTestResultsIncrease, na.rm = TRUE),
+                                                               sum(deathIncrease, na.rm = TRUE),
+                                                               sum(hospitalizedIncrease, na.rm = TRUE)),
+                            by = list(state, wk_ending)][
+                              ymd(date) == wk_ending,
+                              list(wk_ending,
+                                   state,
+                                   hospitalizedCurrently,
+                                   inIcuCurrently,
+                                   onVentilatorCurrently,
+                                   death,
+                                   positiveIncrease,
+                                   negativeIncrease,
+                                   totalTestResultsIncrease,
+                                   deathIncrease,
+                                   hospitalizedIncrease)]
+
+```
+
+
+```{r}
+coeff_tbl <- data.table(state = static_data[,state])[est_casepos_case(test_tbl = clean_data[, c("lead3_wk_ending", "lead3_deathIncrease")])]
+```
+
