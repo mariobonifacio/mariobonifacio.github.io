@@ -1927,3 +1927,34 @@ m_data %>%
        title = "While he lived, the public viewed MLK increasingly less favorably ")
 ```
 
+
+```{r}
+cor_test <- all_data %>%
+  filter(state == "MS") %>% 
+  mutate(yr_wk = str_c(year(ymd(date)), "-", lubridate::week(ymd(date)))) %>% 
+  group_by(yr_wk) %>% 
+  summarize(hospitalizedCurrently = mean(hospitalizedCurrently, na.rm = TRUE),
+            inIcuCurrently = mean(inIcuCurrently, na.rm = TRUE),
+            deathIncrease = sum(deathIncrease, na.rm = TRUE),
+            hospitalizedIncrease = sum(hospitalizedIncrease, na.rm = TRUE),
+            wk_ending = max(ymd(date))) %>% 
+  data.table()
+
+result_tbl <- data.table(lag = integer(), cor_hosp = double(), cor_icu = double())
+
+for (i in 0:4) {
+  temp_tbl <- cor_test[,lead_wk_ending := wk_ending + weeks(i)][,lead_deathIncrease := deathIncrease][,list(lead_deathIncrease, lead_wk_ending)] %>% 
+  inner_join(cor_test[, list(hospitalizedCurrently, inIcuCurrently, wk_ending)], by = c("lead_wk_ending" = "wk_ending")) %>% 
+    summarize(lag = i,
+           cor_hosp = cor(hospitalizedCurrently, lead_deathIncrease, use = "pairwise.complete.obs"),
+           cor_icu = cor(inIcuCurrently, lead_deathIncrease, use = "pairwise.complete.obs")) %>% 
+    select(lag, cor_hosp, cor_icu)
+  
+result_tbl <- rbind(result_tbl, temp_tbl)
+  
+                       
+}
+
+result_tbl
+```
+

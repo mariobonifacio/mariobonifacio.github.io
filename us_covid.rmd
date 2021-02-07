@@ -56,41 +56,37 @@ clean_data <- all_data[state %in% static_data[,state],][
   ,wk_ending := case_when(wday(ymd(date)) == wday(data_date) ~ ymd(date),
                           wday(ymd(date)) < wday(data_date) ~ ymd(date) + days(wday(data_date) - wday(ymd(date))),
                           TRUE ~ ymd(date) + days(7 + wday(data_date) - wday(ymd(date))))][
-                            ,c("hospitalizedCurrently",
-                               "inIcuCurrently",
-                               "onVentilatorCurrently",
-                               "death",
+                            ,c("death",
                                "positiveIncrease",
                                "negativeIncrease",
                                "totalTestResultsIncrease",
-                               "deathIncrease",
-                               "hospitalizedIncrease") := list(mean(hospitalizedCurrently, na.rm = TRUE),
-                                                               mean(inIcuCurrently, na.rm = TRUE),
-                                                               mean(onVentilatorCurrently, na.rm = TRUE),
-                                                               max(death, na.rm = TRUE),
+                               "deathIncrease") := list(max(death, na.rm = TRUE),
                                                                sum(positiveIncrease, na.rm = TRUE),
                                                                sum(negativeIncrease, na.rm = TRUE),
                                                                sum(totalTestResultsIncrease, na.rm = TRUE),
-                                                               sum(deathIncrease, na.rm = TRUE),
-                                                               sum(hospitalizedIncrease, na.rm = TRUE)),
+                                                               sum(deathIncrease, na.rm = TRUE)),
                             by = list(state, wk_ending)][
                               ymd(date) == wk_ending,
                               list(wk_ending,
                                    state,
-                                   hospitalizedCurrently,
-                                   inIcuCurrently,
-                                   onVentilatorCurrently,
                                    death,
                                    positiveIncrease,
                                    negativeIncrease,
                                    totalTestResultsIncrease,
-                                   deathIncrease,
-                                   hospitalizedIncrease)]
+                                   deathIncrease)]
+
+all_data[,c("lead3_wk_ending",
+            "lead3_deathIncrease") := list(case_when(wday(ymd(date)) == wday(data_date) ~ ymd(date),
+                                                     wday(ymd(date)) < wday(data_date) ~ ymd(date) + days(wday(data_date) - wday(ymd(date))),
+                                                     TRUE ~ ymd(date) + days(7 + wday(data_date) - wday(ymd(date)))),
+                                           deathIncrease)][
+                                             ,wk_ending := lead3_wk_ending - weeks(3)]
 
 ```
 
 
+
 ```{r}
-coeff_tbl <- data.table(state = static_data[,state])[est_casepos_case(test_tbl = clean_data[, c("lead3_wk_ending", "lead3_deathIncrease")])]
+
 ```
 
