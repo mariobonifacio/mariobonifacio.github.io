@@ -31,6 +31,7 @@ static_data <- data.table(name = c("Alabama", "Alaska", "Arizona", "Arkansas", "
 
 
 # Three predictive models
+
 est_casepos_case <- function(test_tbl, lead3_death, case, lag1_pos) { lm(lead3_death ~ 0 + case + lag1_pos, test_tbl)[1][1] }
 est_casepos_case <- function(test_tbl, lead3_death, case, lag1_pos) { lm(lead3_death ~ 0 + case + lag1_pos, test_tbl)[2][1] }
 est_case <- function(test_tbl, lead3_death, case) { lm(lead3_death ~ 0 + case + lag1_pos, test_tbl)[1][1] }

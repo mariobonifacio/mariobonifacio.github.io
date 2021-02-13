@@ -32,30 +32,25 @@ region = c("South", "Sky", "Southwest", "Middle South", "West Coast", "Southwest
 
 ```
 
-Pre-load predictive functions
-```{r include=FALSE}
-est_casepos_case <- function(test_tbl, lead3_death, case, lag1_pos) { lm(lead3_death ~ 0 + case + lag1_pos, test_tbl)[1][1] }
-est_casepos_case <- function(test_tbl, lead3_death, case, lag1_pos) { lm(lead3_death ~ 0 + case + lag1_pos, test_tbl)[2][1] }
-est_case <- function(test_tbl, lead3_death, case) { lm(lead3_death ~ 0 + case, test_tbl)[1][1] }
-est_pos <- function(test_tbl, lead3_death, lag1_pos) { lm(lead3_death ~ 0 + lag1_pos, test_tbl)[1][1] }
-```
 
-
+Pull data
 ```{r include=FALSE}
 all_data <- data.table(fromJSON("https://covidtracking.com/api/v1/states/daily.json"))
 ```
 
 ```{r include=FALSE}
 data_date <- ymd(max(all_data[,date], na.rm = TRUE))
+
+date_to_wk <- function(date_input) {case_when(wday(ymd(date_input)) == wday(data_date) ~ ymd(date_input),
+          wday(ymd(date_input)) < wday(data_date) ~ ymd(date_input) + days(wday(data_date) - wday(ymd(date_input))),
+          TRUE ~ ymd(date_input) + days(7 + wday(data_date) - wday(ymd(date_input))))}
 ```
 
 
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 clean_data <- all_data[state %in% static_data[,state],][
-  ,wk_ending := case_when(wday(ymd(date)) == wday(data_date) ~ ymd(date),
-                          wday(ymd(date)) < wday(data_date) ~ ymd(date) + days(wday(data_date) - wday(ymd(date))),
-                          TRUE ~ ymd(date) + days(7 + wday(data_date) - wday(ymd(date))))][
+  ,wk_ending := date_to_wk(date)][
                             ,c("death",
                                "positiveIncrease",
                                "negativeIncrease",
@@ -73,14 +68,16 @@ clean_data <- all_data[state %in% static_data[,state],][
                                    positiveIncrease,
                                    negativeIncrease,
                                    totalTestResultsIncrease,
-                                   deathIncrease)]
-
-all_data[,c("lead3_wk_ending",
-            "lead3_deathIncrease") := list(case_when(wday(ymd(date)) == wday(data_date) ~ ymd(date),
-                                                     wday(ymd(date)) < wday(data_date) ~ ymd(date) + days(wday(data_date) - wday(ymd(date))),
-                                                     TRUE ~ ymd(date) + days(7 + wday(data_date) - wday(ymd(date)))),
-                                           deathIncrease)][
-                                             ,wk_ending := lead3_wk_ending - weeks(3)]
+                                   deathIncrease)] %>%
+  left_join(unique(all_data[,lead3_wk_ending := date_to_wk(date)][
+    ,lead3_deathIncrease := sum(deathIncrease, na.rm = TRUE), by = list(state, lead3_wk_ending)][
+      ,wk_ending := lead3_wk_ending - weeks(3)][
+        ,list(lead3_wk_ending, state, lead3_deathIncrease, wk_ending)]), by = c("wk_ending", "state")) %>% 
+  inner_join(unique(all_data[,lag1_wk_ending := date_to_wk(date)][
+    ,lag1_pos := sum(positiveIncrease, na.rm = TRUE) / sum(totalTestResultsIncrease, na.rm = TRUE), by = list(state, lag1_wk_ending)][
+      ,wk_ending := lag1_wk_ending + weeks(1)][
+        ,list(lag1_wk_ending, state, lag1_pos, wk_ending)]), by = c("wk_ending", "state")) %>% 
+  filter(!is.na(lag1_pos) & !is.na(positiveIncrease) & !is.infinite(lag1_pos) & !is.infinite(positiveIncrease))
 
 ```
 
@@ -88,5 +85,100 @@ all_data[,c("lead3_wk_ending",
 
 ```{r}
 
+coeff_tbl <- data.table(state = character(), est_case = double(), est_pos = double(), est_casepos_case = double(), est_casepos_pos = double())
+  
+for (i in static_data[, state]) {
+  temp_tbl <- data.table(state = i,
+                         est_case = lm(lead3_deathIncrease ~ 0 + positiveIncrease, clean_data[state == i & wk_ending > data_date - months(6)])[[1]][[1]],
+                         est_pos = lm(lead3_deathIncrease ~ 0 + lag1_pos, clean_data[state == i & wk_ending > data_date - months(6)])[[1]][[1]],
+                         est_casepos_case = lm(lead3_deathIncrease ~ 0 + positiveIncrease + lag1_pos, clean_data[state == i & wk_ending > data_date - months(6)])[[1]][[1]],
+                         est_casepos_pos = lm(lead3_deathIncrease ~ 0 + positiveIncrease + lag1_pos, clean_data[state == i & wk_ending > data_date - months(6)])[[2]][[1]])
+  coeff_tbl <- rbindlist(l = list(coeff_tbl, temp_tbl))
+}
+
+coeff_tbl[est_casepos_pos < 0, c("est_casepos_case", "est_casepos_pos") := list(est_case, 0)]
+setkey(coeff_tbl, state)
+
 ```
 
+```{r}
+setkey(clean_data, state)
+
+proj_data <- clean_data[coeff_tbl][
+  is.na(lead3_wk_ending), c("lead3_deathIncrease", "lead3_wk_ending", "death_proj") := list(round(est_casepos_case * positiveIncrease + est_casepos_pos * lag1_pos, 0), wk_ending + weeks(3), TRUE)][
+    is.na(death_proj), death_proj := FALSE][
+      ,truecase_increase := est_pos * lag1_pos / est_casepos_case][
+        ,truecase_increase := if_else(truecase_increase < positiveIncrease, as.double(positiveIncrease), truecase_increase)]
+```
+
+7-month trend
+```{r}
+proj_data %>%
+  filter(wk_ending > today() - months(7)) %>% 
+  group_by(wk_ending, death_proj) %>% 
+  summarize(deathIncrease = sum(deathIncrease)) %>% 
+  ggplot(mapping = aes(x = wk_ending, y = deathIncrease, fill = death_proj)) +
+  theme_bw() +
+  geom_col(color = "dodgerblue", size = 1) +
+  scale_fill_discrete(type = c("black", "darkgray")) +
+  theme(legend.position = "none") +
+  labs(title = "Deaths per week")
+```
+
+compare cases
+```{r}
+proj_data %>%
+  inner_join(static_data[,list(state, pop)]) %>% 
+  mutate(truecase_increase = truecase_increase / pop * 1000,
+         positiveIncrease = positiveIncrease / pop * 1000,
+         undercount <<- max(truecase_increase - positiveIncrease) / truecase_increase, na.rm = TRUE) %>% 
+  filter(wk_ending == data_date,
+         truecase_increase > quantile(positiveIncrease, .8) |
+           state %in% c("AZ", "CA", "TX", "NY", "FL")) %>% 
+  ggplot(mapping = aes(x = reorder(x = state, X = desc(positiveIncrease)))) +
+  geom_col(mapping = aes(y = truecase_increase), fill = "white", color = "black", linetype = "dashed") +
+  geom_col(mapping = aes(y = positiveIncrease, fill = lag1_pos), color = "black") +
+  labs(x = NULL, y = "Case increase per thousand", title = str_c(top_n(clean_data[static_data, on = "state"][wk_ending == data_date], 1, wt = positiveIncrease / pop)[,state], " leads the nation in weekly positive increase, but some states may\nbe undercounting by as much as a factor of ", as.integer(undercount)))
+```
+
+
+```{r}
+
+
+
+
+proj_data %>%
+  inner_join(static_data[,list(state, pop)]) %>% 
+  mutate(lead3_deathIncrease = lead3_deathIncrease / pop * 1E6) %>% 
+  filter(lead3_wk_ending == data_date,
+         lead3_deathIncrease > quantile(lead3_deathIncrease, .85) |
+           state %in% c("AZ", "CA", "TX", "NY", "FL")) %>% 
+  inner_join(unique(proj_data[death_proj == TRUE, list(state, lead3_deathIncrease)][, tot_proj := sum(lead3_deathIncrease), by = state][,list(state, tot_proj)][static_data[,list(state, pop)], on = "state"][,proj_pm := tot_proj / pop])) %>% 
+  ggplot(mapping = aes(x = reorder(x = state, X = desc(lead3_deathIncrease)))) +
+  geom_col(mapping = aes(y = lead3_deathIncrease), fill = "white", color = "black", linetype = "dashed") +
+  geom_col(mapping = aes(y = lead3_deathIncrease, fill = proj_pm), color = "black") +
+  labs(x = NULL, y = "Death increase per million")
+```
+
+
+```{r}
+proj_data %>%
+  inner_join(static_data[,list(state, pop, pop_dens)]) %>% 
+  mutate(death = death / pop * 1E6) %>%
+  filter(wk_ending == data_date,
+         death > quantile(death, .95, na.rm = TRUE) |
+           state %in% c("AZ", "CA", "TX", "NY", "FL")) %>% 
+  ggplot(mapping = aes(x = reorder(x = state, X = desc(death)))) +
+  geom_col(mapping = aes(y = death), fill = "white", color = "black", linetype = "dashed") +
+  geom_col(mapping = aes(y = death, fill = pop_dens), color = "dodgerblue") +
+  labs(x = NULL, y = "COVID-19 deaths per million")
+```
+
+
+```{r}
+proj_data %>%
+  inner_join(static_data[,list(state, pop, pop_dens)]) %>% 
+  mutate(death = death / pop * 1E6) %>%
+  filter(wk_ending == data_date) %>% 
+  arrange(desc(death))
+```
