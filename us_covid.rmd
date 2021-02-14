@@ -16,6 +16,8 @@ library(lubridate)
 library(ggthemes)
 library(gridExtra)
 
+
+
 options(scipen = 999)
 ```
 
@@ -107,38 +109,41 @@ setkey(clean_data, state)
 proj_data <- clean_data[coeff_tbl][
   is.na(lead3_wk_ending), c("lead3_deathIncrease", "lead3_wk_ending", "death_proj") := list(round(est_casepos_case * positiveIncrease + est_casepos_pos * lag1_pos, 0), wk_ending + weeks(3), TRUE)][
     is.na(death_proj), death_proj := FALSE][
-      ,truecase_increase := est_pos * lag1_pos / est_casepos_case][
+      wk_ending > data_date - months(1), truecase_increase := est_pos * lag1_pos / est_casepos_case][
         ,truecase_increase := if_else(truecase_increase < positiveIncrease, as.double(positiveIncrease), truecase_increase)]
 ```
 
 7-month trend
 ```{r}
-proj_data %>%
+grob_trend <- proj_data %>%
   filter(wk_ending > today() - months(7)) %>% 
   group_by(wk_ending, death_proj) %>% 
   summarize(deathIncrease = sum(deathIncrease)) %>% 
-  ggplot(mapping = aes(x = wk_ending, y = deathIncrease, fill = death_proj)) +
+  ggplot(mapping = aes(x = wk_ending, y = deathIncrease, fill = death_proj, linetype = death_proj, color = death_proj)) +
   theme_bw() +
-  geom_col(color = "dodgerblue", size = 1) +
-  scale_fill_discrete(type = c("black", "darkgray")) +
+  geom_col(size = 1.2) +
+  scale_fill_discrete(type = c("darkgray", "white")) +
+  scale_color_discrete(type = c("dodgerblue", "darkgray")) +
   theme(legend.position = "none") +
-  labs(title = "Deaths per week")
+  labs(title = "Deaths per week", x = NULL)
 ```
 
 compare cases
 ```{r}
-proj_data %>%
-  inner_join(static_data[,list(state, pop)]) %>% 
+grob_case <- proj_data %>%
+  inner_join(static_data[,list(state, pop, name)]) %>% 
   mutate(truecase_increase = truecase_increase / pop * 1000,
          positiveIncrease = positiveIncrease / pop * 1000,
-         undercount <<- max(truecase_increase - positiveIncrease) / truecase_increase, na.rm = TRUE) %>% 
+         undercount <<- max((truecase_increase - positiveIncrease) / truecase_increase, na.rm = TRUE)) %>% 
   filter(wk_ending == data_date,
          truecase_increase > quantile(positiveIncrease, .8) |
            state %in% c("AZ", "CA", "TX", "NY", "FL")) %>% 
-  ggplot(mapping = aes(x = reorder(x = state, X = desc(positiveIncrease)))) +
+  ggplot(mapping = aes(x = reorder(x = state, X = positiveIncrease))) +
   geom_col(mapping = aes(y = truecase_increase), fill = "white", color = "black", linetype = "dashed") +
   geom_col(mapping = aes(y = positiveIncrease, fill = lag1_pos), color = "black") +
-  labs(x = NULL, y = "Case increase per thousand", title = str_c(top_n(clean_data[static_data, on = "state"][wk_ending == data_date], 1, wt = positiveIncrease / pop)[,state], " leads the nation in weekly positive increase, but some states may\nbe undercounting by as much as a factor of ", as.integer(undercount)))
+  labs(x = NULL, y = "Case increase per thousand", title = str_c(top_n(clean_data[static_data, on = "state"][wk_ending == data_date], 1, wt = positiveIncrease / pop)[,state], " leads in weekly new cases,\nbut some states may undercount by a factor of ", round(undercount, 2))) +
+  coord_flip() +
+  theme(legend.position = "none")
 ```
 
 
@@ -147,38 +152,41 @@ proj_data %>%
 
 
 
-proj_data %>%
+grob_death_week <- proj_data %>%
   inner_join(static_data[,list(state, pop)]) %>% 
   mutate(lead3_deathIncrease = lead3_deathIncrease / pop * 1E6) %>% 
   filter(lead3_wk_ending == data_date,
          lead3_deathIncrease > quantile(lead3_deathIncrease, .85) |
            state %in% c("AZ", "CA", "TX", "NY", "FL")) %>% 
   inner_join(unique(proj_data[death_proj == TRUE, list(state, lead3_deathIncrease)][, tot_proj := sum(lead3_deathIncrease), by = state][,list(state, tot_proj)][static_data[,list(state, pop)], on = "state"][,proj_pm := tot_proj / pop])) %>% 
-  ggplot(mapping = aes(x = reorder(x = state, X = desc(lead3_deathIncrease)))) +
+  ggplot(mapping = aes(x = reorder(x = state, X = lead3_deathIncrease))) +
   geom_col(mapping = aes(y = lead3_deathIncrease), fill = "white", color = "black", linetype = "dashed") +
   geom_col(mapping = aes(y = lead3_deathIncrease, fill = proj_pm), color = "black") +
-  labs(x = NULL, y = "Death increase per million")
+  labs(x = NULL, y = "Weekly deaths per million", title = str_c(top_n(clean_data[static_data, on = "state"][wk_ending == data_date], 1, wt = deathIncrease / pop)[,state], " sits atop weekly COVID-19 death rate"), caption = ) +
+  theme(legend.position = "none") +
+  coord_flip()
 ```
 
 
 ```{r}
-proj_data %>%
+grob_cum<- proj_data %>%
   inner_join(static_data[,list(state, pop, pop_dens)]) %>% 
   mutate(death = death / pop * 1E6) %>%
   filter(wk_ending == data_date,
-         death > quantile(death, .95, na.rm = TRUE) |
+         death > quantile(death, .96, na.rm = TRUE) |
            state %in% c("AZ", "CA", "TX", "NY", "FL")) %>% 
-  ggplot(mapping = aes(x = reorder(x = state, X = desc(death)))) +
+  ggplot(mapping = aes(x = reorder(x = state, X = death))) +
   geom_col(mapping = aes(y = death), fill = "white", color = "black", linetype = "dashed") +
-  geom_col(mapping = aes(y = death, fill = pop_dens), color = "dodgerblue") +
-  labs(x = NULL, y = "COVID-19 deaths per million")
+  geom_col(mapping = aes(y = death, fill = pop_dens), color = "black") +
+  labs(x = NULL, y = "COVID-19 deaths per million", title = "Top states in COVID-19 deaths per capita may be dense or sparse") +
+  coord_flip() +
+  theme(legend.position = "none") +
+  theme_bw()
 ```
+
 
 
 ```{r}
-proj_data %>%
-  inner_join(static_data[,list(state, pop, pop_dens)]) %>% 
-  mutate(death = death / pop * 1E6) %>%
-  filter(wk_ending == data_date) %>% 
-  arrange(desc(death))
+grid.arrange(grob_case, grob_death_week, grob_trend, grob_cum, ncol = 2)
 ```
+
