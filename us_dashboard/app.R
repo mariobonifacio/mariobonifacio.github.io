@@ -44,7 +44,7 @@ est_pos <- function(test_tbl, lead3_death, lag1_pos) { lm(lead3_death ~ 0 + case
 ui <- fluidPage(
 
     # Application title
-    titlePanel("Old Faithful Geyser Data"),
+    titlePanel("U.S. COVID-19 data"),
 
     # Sidebar with a slider input for number of bins 
     sidebarLayout(

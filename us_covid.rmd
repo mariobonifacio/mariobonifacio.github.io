@@ -40,6 +40,15 @@ Pull data
 all_data <- data.table(fromJSON("https://covidtracking.com/api/v1/states/daily.json"))
 ```
 
+```{r}
+all_data_cdc <- data.table(fromJSON("https://data.cdc.gov/resource/9mfq-cb36.json"))
+
+all_data_cdc[state == "CA"] %>%
+  arrange(desc(submission_date))
+```
+
+
+
 ```{r include=FALSE}
 data_date <- ymd(max(all_data[,date], na.rm = TRUE))
 
@@ -116,7 +125,7 @@ proj_data <- clean_data[coeff_tbl][
 7-month trend
 ```{r}
 grob_trend <- proj_data %>%
-  filter(wk_ending > today() - months(7)) %>% 
+  filter(wk_ending > today() - months(9)) %>% 
   group_by(wk_ending, death_proj) %>% 
   summarize(deathIncrease = sum(deathIncrease)) %>% 
   ggplot(mapping = aes(x = wk_ending, y = deathIncrease, fill = death_proj, linetype = death_proj, color = death_proj)) +
@@ -124,6 +133,7 @@ grob_trend <- proj_data %>%
   geom_col(size = 1.2) +
   scale_fill_discrete(type = c("darkgray", "white")) +
   scale_color_discrete(type = c("dodgerblue", "darkgray")) +
+  theme_bw() +
   theme(legend.position = "none") +
   labs(title = "Deaths per week", x = NULL)
 ```
@@ -141,9 +151,12 @@ grob_case <- proj_data %>%
   ggplot(mapping = aes(x = reorder(x = state, X = positiveIncrease))) +
   geom_col(mapping = aes(y = truecase_increase), fill = "white", color = "black", linetype = "dashed") +
   geom_col(mapping = aes(y = positiveIncrease, fill = lag1_pos), color = "black") +
-  labs(x = NULL, y = "Case increase per thousand", title = str_c(top_n(clean_data[static_data, on = "state"][wk_ending == data_date], 1, wt = positiveIncrease / pop)[,state], " leads in weekly new cases,\nbut some states may undercount by a factor of ", round(undercount, 2))) +
+  labs(x = NULL, y = "Case increase per thousand",
+       title = str_c(top_n(clean_data[static_data, on = "state"][wk_ending == data_date], 1, wt = positiveIncrease / pop)[,state], " leads in weekly new cases,\nbut some states may undercount by a factor of ", round(undercount, 2)),
+       subtitle = str_c("Confirmed COVID-19 cases week ending ", data_date)) +
   coord_flip() +
-  theme(legend.position = "none")
+  theme(legend.position = "none") +
+  theme_bw()
 ```
 
 
@@ -169,7 +182,7 @@ grob_death_week <- proj_data %>%
 
 
 ```{r}
-grob_cum<- proj_data %>%
+grob_cum <- proj_data %>%
   inner_join(static_data[,list(state, pop, pop_dens)]) %>% 
   mutate(death = death / pop * 1E6) %>%
   filter(wk_ending == data_date,
@@ -187,6 +200,6 @@ grob_cum<- proj_data %>%
 
 
 ```{r}
-grid.arrange(grob_case, grob_death_week, grob_trend, grob_cum, ncol = 2)
+grid.arrange(grob_case, grob_death_week, grob_trend, grob_cum)
 ```
 
