@@ -1,0 +1,79 @@
+---
+title: "R Notebook"
+output: html_notebook
+  ---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(tidyverse)
+library(data.table)
+library(lubridate)
+library(stringr)
+```
+
+Get data from Github
+```{r}
+us_death_jhu <- data.table(read_csv("https://raw.githubusercontent.com/mariobonifacio/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv"))
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+```{r}
+data_date <- colnames(us_death_jhu[,-c(1:12)]) %>% 
+  mdy() %>% 
+  max()
+```
+
+
+```{r}
+get_wk_ending <- function(date_input) {day_diff <- wday(date_input) - wday(data_date)
+  wk_ending <- case_when(day_diff < 0  ~ date_input - days(day_diff),
+                         day_diff > 0 ~ date_input + days(7 - day_diff),
+                         TRUE ~ date_input)
+  return(wk_ending)}
+
+
+```
+
+
+```{r message=FALSE, warning=FALSE}
+setnames(us_death_jhu, old = c("Admin2", "Province_State", "Lat", "Long_", "Population"), new = c("county", "state", "lat", "lon", "pop"))
+
+us_death_jhu <- gather(data = us_death_jhu, key = "as_of", value = "deaths", convert = TRUE, -(1:12))
+
+
+us_death_jhu %>% 
+  rename(county = Admin2,
+         state = Province_State,
+         lat = Lat,
+         lon = Long_,
+         pop = Population) %>% 
+  ?gather(key = "as_of", value = "deaths", convert = TRUE, -(1:12)) %>%
+  mutate(as_of = mdy(as_of),
+         wk_ending = get_wk_ending(as_of)) %>% 
+  group_by(county, wk_ending) %>% 
+  summarize(deaths_pc = sum(deaths, na.rm = TRUE) / mean(pop, na.rm = TRUE),
+         pop = as.integer(mean(pop)),
+         deaths = max(as.integer(deaths)),
+         lat = mean(lat),
+         lon = mean(lon)) %>%
+  arrange(deaths_pc) %>% 
+  ggplot() +
+  geom_point(mapping = aes(x = lon, y = lat, size = pop, color = deaths_pc), shape = 15) +
+  xlim(-130, -65) +
+  ylim(20, 55) +
+  scale_color_gradient2(low = "darkgreen", high = "tomato", mid = "goldenrod", midpoint = median(deaths_pc, na.rm = TRUE), na.value = "lightgray") +
+  scale_size_continuous()
+
+
+
+
+```
+

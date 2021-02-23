@@ -40,9 +40,16 @@ Pull data
 all_data <- data.table(fromJSON("https://covidtracking.com/api/v1/states/daily.json"))
 ```
 
+
 ```{r}
 all_data_cdc <- data.table(fromJSON("https://data.cdc.gov/resource/9mfq-cb36.json"))
+```
 
+
+
+
+
+```{r}
 all_data_cdc[state == "CA"] %>%
   arrange(desc(submission_date))
 ```
@@ -135,7 +142,9 @@ grob_trend <- proj_data %>%
   scale_color_discrete(type = c("dodgerblue", "darkgray")) +
   theme_bw() +
   theme(legend.position = "none") +
-  labs(title = "Deaths per week", x = NULL)
+  labs(title = "U.S. COVID-19 deaths may drop", subtitle = str_c("Week ending ", data_date), x = NULL)
+
+grob_trend
 ```
 
 compare cases
@@ -144,6 +153,7 @@ grob_case <- proj_data %>%
   inner_join(static_data[,list(state, pop, name)]) %>% 
   mutate(truecase_increase = truecase_increase / pop * 1000,
          positiveIncrease = positiveIncrease / pop * 1000,
+         truecase_increase = if_else(truecase_increase > 2 * positiveIncrease, 2 * positiveIncrease, truecase_increase),
          undercount <<- max((truecase_increase - positiveIncrease) / truecase_increase, na.rm = TRUE)) %>% 
   filter(wk_ending == data_date,
          truecase_increase > quantile(positiveIncrease, .8) |
@@ -152,11 +162,14 @@ grob_case <- proj_data %>%
   geom_col(mapping = aes(y = truecase_increase), fill = "white", color = "black", linetype = "dashed") +
   geom_col(mapping = aes(y = positiveIncrease, fill = lag1_pos), color = "black") +
   labs(x = NULL, y = "Case increase per thousand",
-       title = str_c(top_n(clean_data[static_data, on = "state"][wk_ending == data_date], 1, wt = positiveIncrease / pop)[,state], " leads in weekly new cases,\nbut some states may undercount by a factor of ", round(undercount, 2)),
+       title = str_c(top_n(clean_data[static_data, on = "state"][wk_ending == data_date], 1, wt = positiveIncrease / pop)[,name], " leads in confirmed cases this past week, but many\nstates are likely counting fewer than half their actual cases"),
        subtitle = str_c("Confirmed COVID-19 cases week ending ", data_date)) +
   coord_flip() +
-  theme(legend.position = "none") +
-  theme_bw()
+  theme_bw() +
+  theme(legend.position = "none")
+
+
+grob_case
 ```
 
 
@@ -176,8 +189,11 @@ grob_death_week <- proj_data %>%
   geom_col(mapping = aes(y = lead3_deathIncrease), fill = "white", color = "black", linetype = "dashed") +
   geom_col(mapping = aes(y = lead3_deathIncrease, fill = proj_pm), color = "black") +
   labs(x = NULL, y = "Weekly deaths per million", title = str_c(top_n(clean_data[static_data, on = "state"][wk_ending == data_date], 1, wt = deathIncrease / pop)[,state], " sits atop weekly COVID-19 death rate"), caption = ) +
+  theme_bw() +
   theme(legend.position = "none") +
   coord_flip()
+
+grob_death_week
 ```
 
 
