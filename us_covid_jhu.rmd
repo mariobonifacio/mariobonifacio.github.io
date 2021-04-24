@@ -14,21 +14,31 @@ library(lubridate)
 library(stringr)
 ```
 
-Get data from Github
+
 ```{r}
-us_death_jhu <- data.table(read_csv("https://raw.githubusercontent.com/mariobonifacio/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv"))
+static_data <- data.table(state = c("Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming", "District of Columbia"), 
+st_code = c("AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY", "DC"), 
+pop = c(4908620, 734002, 7378490, 3039000, 39937500, 5845530, 3563080, 982895, 21993000, 10736100, 1412690, 1826160, 12659700, 6745350, 3179850, 2910360, 4499690, 4645180, 1345790, 6083120, 6976600, 10045000, 5700670, 2989260, 6169270, 1086760, 1952570, 3139660, 1371250, 8936570, 2096640, 19440500, 10611900, 761723, 11747700, 3954820, 4301090, 12820900, 1056160, 5210100, 903027, 6897580, 29472300, 3282120, 628061, 8626210, 7797100, 1778070, 5851750, 567025, 705749),
+area = c(50645, 570641, 113594, 52035, 155779, 103642, 4842, 1949, 53625, 57513, 6423, 82643, 55519, 35826, 55857, 81759, 39486, 43204, 30843, 9707, 7800, 56539, 79627, 46923, 68742, 145546, 76824, 109781, 8953, 7354, 121298, 47126, 48618, 69001, 40861, 68595, 95988, 44743, 1034, 30061, 75811, 41235, 261232, 82170, 9217, 39490, 66456, 24038, 54158, 97093, 68.3),
+region = c("South", "Sky", "Southwest", "Middle South", "West Coast", "Southwest", "Northeast", "Northeast", "South", "South", "West Coast", "Sky", "Midwest", "Midwest", "Midwest", "Sky", "Middle South", "South", "Northeast", "Northeast", "Northeast", "Midwest", "Midwest", "South", "Midwest", "Sky", "Sky", "Southwest", "Northeast", "Northeast", "Southwest", "Northeast", "South", "Sky", "Midwest", "Sky", "West Coast", "Northeast", "Northeast", "South", "Sky", "Middle South", "Southwest", "Sky", "Northeast", "South", "West Coast", "Middle South", "Midwest", "Sky", "Northeast"))[, c("pop", "pop_dens") := list(as.integer(pop), pop / area)]
 ```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+Get data from Github
+```{r}
+orig_data <- data.table(read_csv("https://github.com/CSSEGISandData/COVID-19/blob/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv?raw=true"))
 
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+us_death_jhu <- orig_data
+```
+
+
 
 ```{r}
 data_date <- colnames(us_death_jhu[,-c(1:12)]) %>% 
   mdy() %>% 
   max()
+
+
 ```
 
 
@@ -46,34 +56,76 @@ get_wk_ending <- function(date_input) {day_diff <- wday(date_input) - wday(data_
 ```{r message=FALSE, warning=FALSE}
 setnames(us_death_jhu, old = c("Admin2", "Province_State", "Lat", "Long_", "Population"), new = c("county", "state", "lat", "lon", "pop"))
 
-us_death_jhu <- gather(data = us_death_jhu, key = "as_of", value = "deaths", convert = TRUE, -(1:12))
+us_death_jhu <- data.table(gather(data = us_death_jhu, key = "as_of", value = "deaths", convert = TRUE, -(1:12)))[, as_of := mdy(as_of)]
 
 
-us_death_jhu %>% 
-  rename(county = Admin2,
-         state = Province_State,
-         lat = Lat,
-         lon = Long_,
-         pop = Population) %>% 
-  ?gather(key = "as_of", value = "deaths", convert = TRUE, -(1:12)) %>%
-  mutate(as_of = mdy(as_of),
-         wk_ending = get_wk_ending(as_of)) %>% 
-  group_by(county, wk_ending) %>% 
+wk_data <- us_death_jhu %>% 
+  mutate(wk_ending = get_wk_ending(as_of)) %>% 
+  group_by(state, county, wk_ending) %>% 
   summarize(deaths_pc = sum(deaths, na.rm = TRUE) / mean(pop, na.rm = TRUE),
          pop = as.integer(mean(pop)),
          deaths = max(as.integer(deaths)),
          lat = mean(lat),
-         lon = mean(lon)) %>%
-  arrange(deaths_pc) %>% 
-  ggplot() +
-  geom_point(mapping = aes(x = lon, y = lat, size = pop, color = deaths_pc), shape = 15) +
+         lon = mean(lon)) %>% 
+  data.table()
+```
+
+
+```{r message=FALSE, warning=FALSE}
+wk_data %>% 
+  filter(wk_ending == max(wk_ending) & pop > 100000) %>%
+  arrange(desc(deaths_pc)) %>% 
+  ggplot(aes(color = deaths_pc)) +
+  geom_point(mapping = aes(x = lon, y = lat, size = pop), shape = 15) +
   xlim(-130, -65) +
   ylim(20, 55) +
-  scale_color_gradient2(low = "darkgreen", high = "tomato", mid = "goldenrod", midpoint = median(deaths_pc, na.rm = TRUE), na.value = "lightgray") +
+  scale_color_gradient2(low = "lightyellow", high = "tomato", mid = "lightgoldenrod", na.value = "darkgray") +
   scale_size_continuous()
 
 
+```
 
 
+
+```{r}
+st_data <- wk_data %>% 
+  group_by(wk_ending, state) %>% 
+  summarize(deaths_st = sum(deaths, na.rm = TRUE),
+         pop_st = sum(pop, na.rm = TRUE),
+         deaths_pc_st = deaths_st / pop_st,
+         pop_x_lat = pop * lat,
+         pop_x_lon = pop * lon,
+         lat_wt_st = sum(pop_x_lat, na.rm = TRUE) / pop_st,
+         lon_wt_st = sum(pop_x_lon, na.rm = TRUE) / pop_st)
+  
+st_data %>% 
+  filter(wk_ending == data_date) %>% 
+  ggplot(aes(color = deaths_pc_st)) +
+  geom_point(mapping = aes(x = lon_wt_st, y = lat_wt_st, size = pop_st), shape = 15) +
+  xlim(-130, -65) +
+  ylim(20, 55) +
+  scale_color_gradient2(low = "lightyellow", high = "tomato", mid = "yellow", na.value = "darkgray") +
+  scale_size_continuous()
+```
+
+
+```{r}
+wk_data %>% 
+  filter(wk_ending == data_date) %>%
+  mutate(co_size = case_when(pop < 10000 ~ "small",
+                               pop >= 10000 & pop < 100000 ~ "medium",
+                               pop >= 100000 ~ "large")) %>% 
+  arrange(desc(deaths_pc)) %>% 
+  filter(co_size == "large",
+         !(state %in% c("Alaska", "Hawaii", "Puerto Rico")),
+         !is.na(lat),
+         !is.na(lon),
+         !is.na(state)) %>% 
+         filter(deaths_pc > quantile(wk_data[wk_ending == max(wk_ending, na.rm = TRUE), deaths_pc], probs = 0.90, na.rm = TRUE))  %>% 
+  inner_join(static_data) %>% 
+  ggplot(mapping = aes(x = lon, y = lat)) +
+  geom_point(aes(color = deaths_pc)) +
+  scale_color_gradient2(low = "lightyellow", high = "tomato", mid = "yellow", na.value = "darkgray") +
+  geom_label_repel(aes(label = str_c(county, ",", st_code)))
 ```
 

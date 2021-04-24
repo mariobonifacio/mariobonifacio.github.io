@@ -14,7 +14,7 @@ knitr::opts_chunk$set(
 
 
 ```{r eruptions, echo=FALSE, message=FALSE, warning=FALSE}
-library(shiny); library(lubridate); library(tidyverse); library(ggthemes)
+library(shiny); library(lubridate); library(tidyverse); library(ggthemes); library(stringr)
 
 ui <- bootstrapPage( ## Define the UI
   dateInput(inputId = 'fly_date',
@@ -91,12 +91,12 @@ server <- function(input, output) { ## Define the server code
     my_pred %>%
       ggplot() +
       geom_histogram(mapping = aes(my_pred$pred_delay, fill = is_delayed, color = is_delayed), bin = 60) +
-      ggtitle(paste(sep = '', 'You have a ',
-                    round(100*p_on_time),
+      labs(title = str_c('You have a ',
+                    round(100*p_on_time, 0),
                     '% chance of flying on time'),
-              paste('But if delayed expect to wait around',
-                    round(mdn_pred),
-                    'minutes')) +
+           subtitle = str_c('But if delayed, expect to wait around',
+                       round(mdn_pred),
+                       'minutes')) +
       
       
       
@@ -106,7 +106,7 @@ server <- function(input, output) { ## Define the server code
             axis.ticks.y = element_blank(),
             legend.title = element_blank(),
             legend.position= 'bottom') +
-      scale_fill_manual(values = c('lightgray','darkblue'), aesthetics = 'fill', breaks = c('', 'Best')) +
+      scale_fill_manual(values = c('lightgray','dodgerblue'), aesthetics = 'fill', breaks = c('', 'Best')) +
       scale_color_manual(values = c('darkgray','black'), aesthetics = 'color', breaks = c('', 'Best')) +
       xlab('departure delay in minutes')
     

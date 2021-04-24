@@ -156,7 +156,7 @@ grob_case <- proj_data %>%
          truecase_increase = if_else(truecase_increase > 2 * positiveIncrease, 2 * positiveIncrease, truecase_increase),
          undercount <<- max((truecase_increase - positiveIncrease) / truecase_increase, na.rm = TRUE)) %>% 
   filter(wk_ending == data_date,
-         truecase_increase > quantile(positiveIncrease, .8) |
+         truecase_increase > quantile(positiveIncrease, .75) |
            state %in% c("AZ", "CA", "TX", "NY", "FL")) %>% 
   ggplot(mapping = aes(x = reorder(x = state, X = positiveIncrease))) +
   geom_col(mapping = aes(y = truecase_increase), fill = "white", color = "black", linetype = "dashed") +
@@ -174,10 +174,6 @@ grob_case
 
 
 ```{r}
-
-
-
-
 grob_death_week <- proj_data %>%
   inner_join(static_data[,list(state, pop)]) %>% 
   mutate(lead3_deathIncrease = lead3_deathIncrease / pop * 1E6) %>% 
@@ -188,7 +184,7 @@ grob_death_week <- proj_data %>%
   ggplot(mapping = aes(x = reorder(x = state, X = lead3_deathIncrease))) +
   geom_col(mapping = aes(y = lead3_deathIncrease), fill = "white", color = "black", linetype = "dashed") +
   geom_col(mapping = aes(y = lead3_deathIncrease, fill = proj_pm), color = "black") +
-  labs(x = NULL, y = "Weekly deaths per million", title = str_c(top_n(clean_data[static_data, on = "state"][wk_ending == data_date], 1, wt = deathIncrease / pop)[,state], " sits atop weekly COVID-19 death rate"), caption = ) +
+  labs(x = NULL, y = "Weekly deaths per million", title = str_c(top_n(clean_data[static_data, on = "state"][wk_ending == data_date], 1, wt = deathIncrease / pop)[,state], " sits atop weekly COVID-19 death rate through ", data_date)) +
   theme_bw() +
   theme(legend.position = "none") +
   coord_flip()
@@ -211,6 +207,8 @@ grob_cum <- proj_data %>%
   coord_flip() +
   theme(legend.position = "none") +
   theme_bw()
+
+grob_cum
 ```
 
 
