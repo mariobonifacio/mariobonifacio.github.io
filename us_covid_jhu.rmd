@@ -24,12 +24,20 @@ region = c("South", "Sky", "Southwest", "Middle South", "West Coast", "Southwest
 ```
 
 
-Get data from Github
+Get death data from Github
 ```{r}
-orig_data <- data.table(read_csv("https://github.com/CSSEGISandData/COVID-19/blob/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv?raw=true"))
+orig_data <- data.table(read_csv("https://github.com/mariobonifacio/COVID-19/blob/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv?raw=true"))
 
 us_death_jhu <- orig_data
 ```
+
+Get case data from github
+```{r}
+orig_case_data <- data.table(read_csv("https://github.com/CSSEGISandData/COVID-19/blob/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv?raw=true"))
+
+us_case_jhu <- orig_case_data
+```
+
 
 
 
@@ -57,9 +65,23 @@ get_wk_ending <- function(date_input) {day_diff <- wday(date_input) - wday(data_
 setnames(us_death_jhu, old = c("Admin2", "Province_State", "Lat", "Long_", "Population"), new = c("county", "state", "lat", "lon", "pop"))
 
 us_death_jhu <- data.table(gather(data = us_death_jhu, key = "as_of", value = "deaths", convert = TRUE, -(1:12)))[, as_of := mdy(as_of)]
+```
 
 
-wk_data <- us_death_jhu %>% 
+```{r}
+setnames(us_case_jhu, old = c("Admin2", "Province_State"), new = c("county", "state"))
+
+us_case_jhu <- data.table(gather(data = us_case_jhu, key = "as_of", value = "cases", convert = TRUE, -(1:11)))[, as_of := mdy(as_of)]
+```
+
+
+
+
+
+
+```{r message=FALSE, warning=FALSE}
+wk_data <- us_death_jhu[, c(6,7,9,10,12:14)] %>%
+  inner_join(us_case_jhu[,c(6,7,12,13)], by = c("county", "state", "as_of")) %>% 
   mutate(wk_ending = get_wk_ending(as_of)) %>% 
   group_by(state, county, wk_ending) %>% 
   summarize(deaths_pc = sum(deaths, na.rm = TRUE) / mean(pop, na.rm = TRUE),
@@ -69,6 +91,12 @@ wk_data <- us_death_jhu %>%
          lon = mean(lon)) %>% 
   data.table()
 ```
+
+
+```{r}
+write.csv(x = wk_data, file = "wk_data.csv")
+```
+
 
 
 ```{r message=FALSE, warning=FALSE}
