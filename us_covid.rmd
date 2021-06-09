@@ -41,11 +41,10 @@ all_data <- data.table(fromJSON("https://covidtracking.com/api/v1/states/daily.j
 ```
 
 
+
 ```{r}
 all_data_cdc <- data.table(fromJSON("https://data.cdc.gov/resource/9mfq-cb36.json"))
 ```
-
-
 
 
 

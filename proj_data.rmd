@@ -13,12 +13,14 @@ library(data.table)
 library(lubridate)
 library(stringr)
 library(ggrepel)
+
+options(scipen=999)
 ```
 
 
 
 ```{r}
-static_data <- data.table(state = c("Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming", "District of Columbia"), 
+static_data <- data.table(st_name = c("Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming", "District of Columbia"), 
 st_code = c("AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY", "DC"), 
 pop = c(4908620, 734002, 7378490, 3039000, 39937500, 5845530, 3563080, 982895, 21993000, 10736100, 1412690, 1826160, 12659700, 6745350, 3179850, 2910360, 4499690, 4645180, 1345790, 6083120, 6976600, 10045000, 5700670, 2989260, 6169270, 1086760, 1952570, 3139660, 1371250, 8936570, 2096640, 19440500, 10611900, 761723, 11747700, 3954820, 4301090, 12820900, 1056160, 5210100, 903027, 6897580, 29472300, 3282120, 628061, 8626210, 7797100, 1778070, 5851750, 567025, 705749),
 area = c(50645, 570641, 113594, 52035, 155779, 103642, 4842, 1949, 53625, 57513, 6423, 82643, 55519, 35826, 55857, 81759, 39486, 43204, 30843, 9707, 7800, 56539, 79627, 46923, 68742, 145546, 76824, 109781, 8953, 7354, 121298, 47126, 48618, 69001, 40861, 68595, 95988, 44743, 1034, 30061, 75811, 41235, 261232, 82170, 9217, 39490, 66456, 24038, 54158, 97093, 68.3),
@@ -29,31 +31,74 @@ region = c("South", "Sky", "Southwest", "Middle South", "West Coast", "Southwest
 Get death data from Github
 ```{r}
 orig_data <- data.table(read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv"))
+```
 
-
-
-us_death_jhu <- orig_data
+Initial tidying of death data
+```{r}
+us_death_jhu <- orig_data[,c(-(1:5), -8, -11, -12)] %>% 
+  rename(county = Admin2, st_name = Province_State) %>%
+  gather(key = "as_of", value = "cum_deaths", convert = TRUE, -(1:4)) %>% 
+  filter(cum_deaths > 0) %>%
+  group_by(county, st_name) %>% 
+  mutate(as_of = mdy(as_of),
+         cum_deaths = as.integer(cum_deaths)) %>% 
+  arrange(as_of) %>%
+  mutate(incr_deaths = cum_deaths - lag(cum_deaths)) %>% 
+  data.table()
+  
 ```
 
 Get case data from github
 ```{r}
 orig_case_data <- data.table(read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv"))
+```
 
-us_case_jhu <- orig_case_data
+Initial tidying of case data
+```{r}
+us_case_jhu <- orig_case_data[,c(-(1:5), -8, -11)] %>%
+  rename(county = Admin2, st_name = Province_State) %>%
+  gather(key = "as_of", value = "cum_cases", convert = TRUE, -(1:4)) %>% 
+  filter(cum_cases > 0) %>% 
+  group_by(county, st_name) %>% 
+  mutate(as_of = mdy(as_of),
+         cum_cases = as.integer(cum_cases)) %>% 
+  arrange(as_of) %>%
+  mutate(incr_cases = cum_cases - lag(cum_cases)) %>% 
+  data.table()
 ```
 
 Get test data from github
 ```{r}
 orig_test_data <- data.table(read_csv("https://raw.githubusercontent.com/govex/COVID-19/master/data_tables/testing_data/time_series_covid19_US.csv"))
-  
+```
 
-us_test_jhu <- orig_test_data[,list(as_of = lubridate::mdy(date), st_code = state, tests = as.integer(tests_combined_total))][static_data, on = "st_code"]
+
+```{r}
+us_test_jhu <- orig_test_data[,list(as_of = lubridate::mdy(date), st_code = state, cum_tests = as.integer(tests_combined_total))][static_data[,1:2], on = "st_code"][cum_tests > 0]
+
 ```
 
 Get vaccine data from CDC
 ```{r}
 orig_vaccine_data <- data.table(read_csv("https://raw.githubusercontent.com/govex/COVID-19/master/data_tables/vaccine_data/us_data/time_series/vaccine_data_us_timeline.csv"))
-us_vax_jhu <- orig_vaccine_data[Vaccine_Type == "All"][,state := Province_State][,as_of := Date][!is.na(Doses_admin)|!is.na(Stage_One_Doses) ,c(10,11,14,15)]
+```
+
+
+```{r}
+us_vax_cdc <- orig_vaccine_data[Vaccine_Type == "All"][
+  (!is.na(Doses_admin)|
+    !is.na(Stage_One_Doses)|
+    !is.na(Stage_Two_Doses)) &
+    (Doses_admin > 0|
+    Stage_One_Doses>0|
+    Stage_Two_Doses>0),
+  c(1,2,10:12)] %>%
+  rename(st_name = Province_State,
+         as_of := Date,
+         cum_all_doses = Doses_admin,
+         cum_dose1 = Stage_One_Doses,
+         cum_dose2 = Stage_Two_Doses)
+  
 
 
 
@@ -63,9 +108,7 @@ us_vax_jhu <- orig_vaccine_data[Vaccine_Type == "All"][,state := Province_State]
 
 
 ```{r}
-data_date <- colnames(us_death_jhu[,-c(1:12)]) %>% 
-  mdy() %>% 
-  max()
+data_date <- max(us_death_jhu[,as_of])
 
 data_date
 ```
@@ -83,19 +126,9 @@ get_wk_ending <- function(date_input) {day_diff <- wday(date_input) - wday(data_
 
 
 
-```{r message=FALSE, warning=FALSE}
-setnames(us_death_jhu, old = c("Admin2", "Province_State", "Lat", "Long_", "Population"), new = c("county", "state", "lat", "lon", "pop"))
-
-us_death_jhu <- data.table(gather(data = us_death_jhu, key = "as_of", value = "deaths", convert = TRUE, -(1:12)))[, as_of := mdy(as_of)]
-```
 
 
 
-```{r}
-setnames(us_case_jhu, old = c("Admin2", "Province_State"), new = c("county", "state"))
-
-us_case_jhu <- data.table(gather(data = us_case_jhu, key = "as_of", value = "cases", convert = TRUE, -(1:11)))[, as_of := mdy(as_of)]
-```
 
 
 
@@ -105,17 +138,25 @@ us_case_jhu <- data.table(gather(data = us_case_jhu, key = "as_of", value = "cas
 
 
 ```{r message=FALSE, warning=FALSE}
-wk_data <- us_death_jhu[, c(6,7,9,10,12:14)] %>%
-  inner_join(us_case_jhu[,c(6,7,12,13)], by = c("county", "state", "as_of")) %>% 
+wk_data <- us_death_jhu[, c(
+  # 6,
+  7,9,10,12:14)] %>%
+  inner_join(us_case_jhu[,c(
+    # 6,
+    7,12,13)], by = c(
+      # "county", 
+      "state", "as_of")) %>%
+  inner_join(us_test_jhu) %>% 
   mutate(wk_ending = get_wk_ending(as_of)) %>% 
-  group_by(state, county, wk_ending) %>% 
-  summarize(deaths_pc = sum(deaths, na.rm = TRUE) / mean(pop, na.rm = TRUE),
-            cases_pc = sum(cases, na.rm = TRUE) / mean(pop, na.rm = TRUE),
-            pop = as.integer(mean(pop)),
-            deaths = max(as.integer(deaths)),
-            cases = max(as.integer(cases)),
+  group_by(state, 
+           # county,
+           wk_ending) %>% 
+  summarize(pop = as.integer(sum(pop, na.rm = TRUE)),
+            cum_deaths = sum(as.integer(deaths)),
+            cum_cases = sum(as.integer(cases)),
             lat = mean(lat),
-            lon = mean(lon)) %>%
+            lon = mean(lon),
+            curr_date = data_date) %>%
   data.table()
 ```
 
@@ -144,9 +185,12 @@ st_data <- wk_data %>%
                          cum_1st_doses = max(Stage_One_Doses, na.rm = TRUE)) %>%
               group_by(state) %>%
               arrange(state, wk_ending) %>% 
-              mutate()
-              data.table(), by = c("state", "wk_ending"))
-  unique() 
+              mutate(wk_all_doses = cum_all_doses - lag(cum_all_doses),
+                     wk_1st_doses = cum_1st_doses - lag(cum_1st_doses)) %>% 
+              ungroup() %>% 
+              data.table(), by = c("state", "wk_ending")) %>% 
+  unique() %>% 
+  mutate(curr_date = data_date)
 ```
 
 
@@ -200,14 +244,14 @@ stagger <- st_data %>%
   arrange(state, wk_ending) %>% 
   mutate(wk_cases = cases_st - lag(cases_st)) %>% 
   ungroup() %>% 
-  select(1,2,5,8,9,11:15)
+  data.table()
   
   
 ```
 
 
 Linear regression functions
-```{r eval=FALSE, include=FALSE}
+```{r}
 get_casepos_case <- function(deaths, cases, pos) {
   temp_lm <- lm(formula = deaths ~ 0 + cases + pos)
   return(coefficients(temp_lm)[1])
@@ -226,16 +270,24 @@ get_case_case <- function(deaths, cases) {
 
 
 ```{r}
-stagger %>% 
+
+
+
+proj_table <- stagger %>% 
+  # filter(wk_ending > data_date - weeks(25)) %>% 
   group_by(state) %>% 
   mutate(casepos_case = get_casepos_case(lead_3wk_deaths, wk_cases, lag_1wk_pos),
          casepos_pos = get_casepos_pos(lead_3wk_deaths, wk_cases, lag_1wk_pos),
-         case_case = get_casepos_case(lead_3wk_deaths, wk_cases, lag_1wk_pos),
-         lead_3wk_deaths_proj = if_else(casepos_pos > 0,
-                                        casepos_case * wk_cases + casepos_pos * lag_1wk_pos,
-                                        case_case * wk_cases))
+         case_case = get_case_case(lead_3wk_deaths, wk_cases),
+         lead_3wk_deaths_proj = case_when(lead_3wk < data_date & !is.na(lead_3wk_deaths) ~ NA_real_,
+                                          lead_3wk == data_date ~ as.double(lead_3wk_deaths),
+                                          lead_3wk > data_date & casepos_pos > 0 ~ casepos_case * wk_cases + casepos_pos * lag_1wk_pos,
+                                          lead_3wk > data_date & casepos_pos <= 0 ~ case_case * wk_cases)) %>%
+  ungroup() %>% 
+  mutate(curr_date = data_date,
+         curr_death_pc = if_else(wk_ending == curr_date, deaths_pc_st, NULL))
   
-         
-  
+write_csv(x = proj_table, file = "proj_data.csv")
+
 ```
 
